@@ -18,7 +18,7 @@ RAG (Retrieval-Augmented Generation): The coach is powered by professional coach
 ## Setup & Installation
 1. Clone the Repo
 ```bash
-git clone [https://github.com/yourusername/garmin-analytics-ai.git](https://github.com/amdieter/garmin-guru.git)
+git clone <url>
 cd garmin-guru
 ```
 2. Activate a virtual environment
