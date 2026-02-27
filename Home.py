@@ -48,17 +48,6 @@ def coach_retrieval(q, retriever):
     docs = retriever.invoke(q)
     return "\n\n".join([d.page_content for d in docs])
 
-def get_ai_hot_take(stats):
-    try:
-        api_key = os.getenv("GOOGLE_API_KEY")
-        llm_joke = ChatGoogleGenerativeAI(model="models/gemini-2.5-flash", google_api_key=api_key)
-        # Use the already initialized coach_agent or llm
-        prompt = f"Write a 1-sentence funny, running coach comment about these stats: {stats}. Keep it fun and use comparisons to real-world things, focus on ridiculous comparisons with total distance and total elevation gain."
-        response = llm_joke.invoke(prompt) # Or use your llm.invoke()
-        return response.content
-    except Exception as e:
-        return f"Keep up the pace, human! {e}"
-
 def get_agent():
     load_dotenv("cred.env")
     api_key = os.getenv("GOOGLE_API_KEY")
@@ -126,13 +115,11 @@ def get_agent():
                         
                         ### YOUR COACHING PHILOSOPHY:
                         1. **The 80/20 Rule**: 80% of training should be 'Easy' (Zone 1 & 2). 20% should be 'Hard' (Zone 4 & 5).
-                        2. **Beware the 'Grey Zone'**: Frequent training in Zone 3 (Moderate/Tempo) without a specific purpose 
-                           may be a sign of 'plateau training.' Warn the user if they are stuck here.
-                        3. **Aerobic Deficiency Check**: If the user's Pace is slow but their Average Heart Rate is high, 
+                        2. **Aerobic Deficiency Check**: If the user's Pace is slow but their Average Heart Rate is high, 
                            advise them to focus on building their aerobic base.
-                        4. **Context Matters**: If a run has significant 'Elev Gain (ft)', do not penalize the user for a 
+                        3. **Context Matters**: If a run has significant 'Elev Gain (ft)', do not penalize the user for a 
                            slower pace—acknowledge the vertical effort.
-                        5. **Injury Prevention**: If 'Stress Ratio' is > 1.3, be firm about taking a rest/easy day.
+                        4. **Injury Prevention**: If 'Stress Ratio' is > 1.3, be firm about taking a rest/easy day.
                         
                         ### TOOL USAGE RULES:
                         - Use **Workout_Data_Analyzer** to get specific numbers (e.g., "What was my Z2 time yesterday?").
@@ -199,21 +186,28 @@ if __name__ == "__main__":
         
         email = st.session_state.garmin_email
         pwd = st.session_state.garmin_password
-        current_range = st.session_state.get("range_days", 7) # Pull last week
-        
-        df = get_cached_workout_data(current_range, email, pwd)
-        stats = summarize_n_days(df)
 
-        if "df_all_time" not in st.session_state:
-            with st.spinner("Fetching all-time history for PRs..."):
-                # Fetch 3650 days (10 years)
-                st.session_state.df_all_time = get_cached_workout_data(3650, email, pwd)
-            
-        # Store df in session state
-        st.session_state.df_data = df
+        if "df_master" not in st.session_state:
+            with st.spinner("Fetching training history..."):
+                # Fetch 3650 days
+                st.session_state.df_master = get_cached_workout_data(3650, email, pwd)
+
+        current_range = st.session_state.get("range_days", 30)
+        cutoff_date = datetime.now() - timedelta(days=current_range)
+        
+        master_df = st.session_state.df_master
+        st.session_state.df_data = master_df[master_df['Date'] >= cutoff_date].copy()
+
+        # Initialize the agent with the FILTERED data
         st.session_state.coach_agent = get_agent()
-        # Get all-time for pr calc
-        all_time_stats = summarize_n_days(st.session_state.df_all_time)
+        
+        # Create short aliases for the rest of the script
+        df = st.session_state.df_data
+        stats = summarize_n_days(df)
+        coach_agent = st.session_state.coach_agent
+
+    
+        all_time_stats = summarize_n_days(st.session_state.df_master)
 
     with st.sidebar:
         st.header("📊 Training Summary")
@@ -235,34 +229,45 @@ if __name__ == "__main__":
             st.session_state.memory.clear()
             st.session_state.range_days = 365
             st.rerun()
+
+        if df is not None and not df.empty:
+            stats = summarize_n_days(df) 
             
+            st.markdown(f"### Last {current_range} Days")
+            st.metric("Total Distance", f"{stats.get('Total Distance Run (mi)', 0):.1f} mi")
+            st.metric("Elevation Gain", f"{stats.get('Total Elevation Gained (ft)', 0):,.0f} ft")
+            st.metric("Current VO2 Max", f"{stats.get('Current VO2 Max', 'N/A')}")
     
-        # Logic: If the button was just clicked, the script reruns and picks up this value
-        current_range = st.session_state.get("range_days", 7)
-    
-    # Aliases
-    coach_agent = st.session_state.coach_agent
-    df = st.session_state.get("df_data")
-    
-    # Activity Selector Dropdown
-    # if df is not None and not df.empty:
-    #     st.divider()
+            st.divider()
+
+    if df is not None and not df.empty:
+        # Get the Stress Score
+        stress_score = get_training_stress(master_df)
+        st.subheader("Training Readiness")
         
-    #     # Create label for the dropdown
-    #     df['display_name'] = df['Date'].dt.strftime('%Y-%m-%d') + " - " + df['Activity Name']
-        
-    #     # Selection Box
-    #     selected_run_name = st.selectbox("Select a past activity to analyze:", df['display_name'])
-        
-    #     # select row
-    #     run_data = df[df['display_name'] == selected_run_name].iloc[0]
-    
-    #     # Metrics
-    #     col1, col2, col3, col4 = st.columns(4)
-    #     col1.metric("Distance", f"{run_data['Distance (mi)']} mi")
-    #     col2.metric("Pace", f"{run_data['Pace_Decimal']:.2f} min/mi")
-    #     col3.metric("Avg HR", f"{run_data['Avg HR']} bpm")
-    #     col4.metric("Elev Gain", f"{run_data['Elev Gain (ft)']} ft")
+        # Define status colors/labels
+        if stress_score < 0.8:
+            status_label, status_color, status_icon = "Recovery / Detraining", "normal", "🧊"
+        elif 0.8 <= stress_score <= 1.3:
+            status_label, status_color, status_icon = "Optimal Load", "normal", "✅"
+        else:
+            status_label, status_color, status_icon = "High Load / Overreaching", "inverse", "⚠️"
+
+        # Display the readiness metric at the top of the dashboard
+        r_col1, r_col2 = st.columns([1, 3])
+        with r_col1:
+            st.metric("Stress Ratio", f"{stress_score}", delta=status_label, delta_color=status_color)
+        with r_col2:
+            st.markdown(f"**Status: {status_icon}**")
+            if status_icon == "⚠️":
+                st.warning("Your volume is spiking! Consider an easy day to prevent injury.")
+            elif status_icon == "✅":
+                st.success("You're in the training 'Sweet Spot.' Keep it up!")
+            else:
+                st.info("You are currently in a recovery phase or decreasing volume.")
+                
+    st.divider()
+
     if df is not None and not df.empty:
         st.divider()
         st.header("🏃 Recent Activities")
@@ -300,126 +305,48 @@ if __name__ == "__main__":
                 with st.expander("View Zone Breakdown"):
                     zones = {"Z1": row['Z1_Min'], "Z2": row['Z2_Min'], "Z3": row['Z3_Min'], "Z4": row['Z4_Min'], "Z5": row['Z5_Min']}
                     st.bar_chart(pd.Series(zones), horizontal=True, height=150)
-    
-    # if st.button("Coach: Critique this Run"):
-    #     with st.spinner("Analyzing effort..."):
-    #         # Prepare the query
-    #         critique_query = f"Analyze this specific run: {run_data.to_json()}. Based on the HR zones and pace, was this a good workout? Check the coaching PDFs for context. Suggest ways to improve."
-            
-    #         # Pull history from session state memory
-    #         history = st.session_state.memory.load_memory_variables({})["chat_history"]
-    
-    #         # Invoke with history included
-    #         response = coach_agent.invoke({
-    #             "input": critique_query,
-    #             "chat_history": history
-    #         })
-            
-    #         # Display and save to memory manually (since this isn't the chat_input loop)
-    #         st.chat_message("assistant").write(response["output"])
-    #         st.session_state.memory.save_context({"input": critique_query}, {"output": response["output"]})
-
-    if df is not None and not df.empty:
-        # Get the Stress Score
-        stress_score = get_training_stress(df)
-        st.subheader("Training Readiness")
-        
-        # Define status colors/labels
-        if stress_score < 0.8:
-            status_label, status_color, status_icon = "Recovery / Detraining", "normal", "🧊"
-        elif 0.8 <= stress_score <= 1.3:
-            status_label, status_color, status_icon = "Optimal Load", "normal", "✅"
-        else:
-            status_label, status_color, status_icon = "High Load / Overreaching", "inverse", "⚠️"
-
-        # Display the readiness metric at the top of the dashboard
-        r_col1, r_col2 = st.columns([1, 3])
-        with r_col1:
-            st.metric("Stress Ratio", f"{stress_score}", delta=status_label, delta_color=status_color)
-        with r_col2:
-            st.markdown(f"**Status: {status_icon}**")
-            if status_icon == "⚠️":
-                st.warning("Your volume is spiking! Consider an easy day to prevent injury.")
-            elif status_icon == "✅":
-                st.success("You're in the training 'Sweet Spot.' Keep it up!")
-            else:
-                st.info("You are currently in a recovery phase or decreasing volume.")
 
     st.divider()
-
-    # Heart Rate Zone Visualization
-    # st.subheader("Heart Rate Zone Distribution")
-    # hr_zones = {
-    #     "Zone 1 (Recovery)": run_data['Z1_Min'],
-    #     "Zone 2 (Aerobic)": run_data['Z2_Min'],
-    #     "Zone 3 (Tempo)": run_data['Z3_Min'],
-    #     "Zone 4 (Threshold)": run_data['Z4_Min'],
-    #     "Zone 5 (Anaerobic)": run_data['Z5_Min']
-    # }
-    # # Bar chart
-    # hr_df = pd.DataFrame(list(hr_zones.items()), columns=['Zone', 'Minutes'])
-    # st.bar_chart(hr_df.set_index('Zone'))
-    
-    # Summary Stats
-    with st.sidebar:
-        if df is not None and not df.empty:
-            stats = summarize_n_days(df) 
-            
-            st.markdown(f"### Last {current_range} Days")
-            st.metric("Total Distance", f"{stats.get('Total Distance Run (mi)', 0):.1f} mi")
-            st.metric("Elevation Gain", f"{stats.get('Total Elevation Gained (ft)', 0):,.0f} ft")
-            st.metric("Current VO2 Max", f"{stats.get('Current VO2 Max', 'N/A')}")
-    
-            st.divider()
-            
-            with st.spinner("Generating commentary..."):
-                joke = get_ai_hot_take(stats)
-                st.info(joke)
     
     with st.expander("📊 View Recent Activity Data"):
         if df is not None:
             st.dataframe(df, width='stretch')
         else:
             st.error("Could not load Garmin data. Check your credentials.")
-    
-    # Display existing messages from history
-    for msg in msgs.messages:
-        st.chat_message(msg.type).write(msg.content)
-    
-    # Handle new user input
-    if user_query := st.chat_input("Ask Coach about your training..."):
-        # Immediately show user message
-        st.chat_message("human").write(user_query)
+
+    with st.container(height=400): # Fixed height makes it a scrollable sub-window
+        # Display existing messages from history
+        for msg in msgs.messages:
+            st.chat_message(msg.type).write(msg.content)
         
-        with st.chat_message("assistant"):
-            # Container for the response
-            response_container = st.container()
+        # Handle new user input
+        if user_query := st.chat_input("Ask Coach about your training..."):
+            # Immediately show user message
+            st.chat_message("human").write(user_query)
             
-            with st.spinner("Analyzing data and coaching files..."):
-                try:
-                    # Double check the agent exists in state
-                    if "coach_agent" in st.session_state:
-                        # Clear old charts
-                        if os.path.exists("current_chart.png"):
-                            os.remove("current_chart.png")
-                        
-                        # Run the agent
-                        response = st.session_state.coach_agent.invoke({
-                            "input": user_query,
-                            "chat_history": st.session_state.memory.load_memory_variables({})["chat_history"]
-                        })
-                        
-                        # Write result to the container
-                        response_container.write(response["output"])
-                        
-                        # Display chart if generated
-                        if os.path.exists("current_chart.png"):
-                            st.image("current_chart.png", width='stretch')
-                    else:
-                        st.error("Coach agent is not initialized. Try refreshing the page.")
+            with st.chat_message("assistant"):
+                # Container for the response
+                response_container = st.container()
                 
-                except Exception as e:
-                    st.error(f"Agent Error: {e}")
+                with st.spinner("Analyzing data and coaching files..."):
+                    try:
+                        # Double check the agent exists in state
+                        if "coach_agent" in st.session_state:
+                            
+                            # Run the agent
+                            response = st.session_state.coach_agent.invoke({
+                                "input": user_query,
+                                "chat_history": st.session_state.memory.load_memory_variables({})["chat_history"]
+                            })
+                            
+                            # Write result to the container
+                            response_container.write(response["output"])
+    
+                        else:
+                            st.error("Coach agent is not initialized. Try refreshing the page.")
+                    
+                    except Exception as e:
+                        st.error(f"Agent Error: {e}")
 
 
 

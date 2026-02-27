@@ -1,7 +1,17 @@
 import streamlit as st
 
 def apply_custom_style():
+    st.markdown("<div id='top'></div>", unsafe_allow_html=True)
+    
     st.markdown("""
+    <script>
+        // Force the window to scroll to the top element on load
+        var topElement = window.parent.document.getElementById('top');
+        if (topElement) {
+            topElement.scrollIntoView();
+        }
+    </script>
+    
     <style>
     /* Global App Background */
     .stApp {
