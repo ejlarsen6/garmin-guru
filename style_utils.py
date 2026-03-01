@@ -80,6 +80,13 @@ def apply_custom_style():
         border-radius: 8px;
         padding: 0.5rem 1rem;
         transition: all 0.3s ease;
+        font-weight: 500 !important;
+    }
+
+    /* Ensure all button text is always visible */
+    button, .stButton>button, .stButton>button:link, .stButton>button:visited,
+    .stButton>button:hover, .stButton>button:active, .stButton>button:focus {
+        color: #ffffff !important;
     }
 
     /* Hover state to make it feel interactive */
@@ -92,6 +99,35 @@ def apply_custom_style():
     /* Active/Click state */
     .stButton>button:active {
         transform: scale(0.98);
+        background-color: #0056cc !important;
+        color: #ffffff !important;
+    }
+
+    /* Make sure form submit buttons are also styled */
+    div[data-testid="stForm"] button {
+        background-color: #1a1c23 !important;
+        color: #ffffff !important;
+        border: 1px solid #0078ff !important;
+        border-radius: 8px;
+        padding: 0.5rem 1rem;
+        font-weight: 500 !important;
+    }
+
+    div[data-testid="stForm"] button:hover {
+        background-color: #0078ff !important;
+        color: #ffffff !important;
+    }
+
+    /* Style for critique buttons specifically */
+    button[kind="secondary"], button[kind="primary"] {
+        background-color: #1a1c23 !important;
+        color: #ffffff !important;
+        border: 1px solid #0078ff !important;
+    }
+
+    button[kind="secondary"]:hover, button[kind="primary"]:hover {
+        background-color: #0078ff !important;
+        color: #ffffff !important;
     }
 
     /* Chat Input & Bottom UI */
@@ -116,6 +152,30 @@ def apply_custom_style():
         visibility: hidden;
         height: 0%;
     }
+    
+    /* Ensure all buttons have visible text */
+    button, .stButton button, .stButton button p, .stButton button span,
+    .stButton button div, .stButton button label {
+        color: #ffffff !important;
+    }
+    
+    /* Make sure button text is always white */
+    .stButton button {
+        color: #ffffff !important;
+    }
+    
+    /* Style for week/month/year buttons in sidebar */
+    .stButton button[kind="secondary"] {
+        background-color: #1a1c23 !important;
+        color: #ffffff !important;
+        border: 1px solid #0078ff !important;
+    }
+    
+    .stButton button[kind="secondary"]:hover {
+        background-color: #0078ff !important;
+        color: #ffffff !important;
+    }
+    
     /* Dark Chat Input Styling - Target the entire container */
     [data-testid="stChatInput"] {
         background-color: #374151 !important; /* Dark gray background */
@@ -167,6 +227,23 @@ def apply_custom_style():
         background-color: #0056cc !important;
     }
 
+    /* Style for form submit buttons (like login) */
+    div[data-testid="stFormSubmitButton"] button,
+    div[data-testid="stFormSubmitButton"] button p,
+    div[data-testid="stFormSubmitButton"] button span {
+        background-color: #1a1c23 !important;
+        color: #ffffff !important;
+        border: 1px solid #0078ff !important;
+        border-radius: 8px;
+        padding: 0.5rem 1rem;
+        font-weight: 500 !important;
+    }
+    
+    div[data-testid="stFormSubmitButton"] button:hover {
+        background-color: #0078ff !important;
+        color: #ffffff !important;
+    }
+    
     [class="st-emotion-cache-128upt6 e1td4qo63"] {
         background-color: transparent;
     }
