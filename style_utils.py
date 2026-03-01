@@ -116,34 +116,55 @@ def apply_custom_style():
         visibility: hidden;
         height: 0%;
     }
-    /* Dark Chat Input Styling */
+    /* Dark Chat Input Styling - Target the entire container */
     [data-testid="stChatInput"] {
-        background-color: #2d3748 !important; /* Medium gray that's distinguishable against black */
+        background-color: #374151 !important; /* Dark gray background */
         border: 1px solid rgba(255, 255, 255, 0.2) !important;
         border-radius: 12px;
+        padding: 8px;
     }
 
-    /* Target the text area inside to ensure proper contrast */
+    /* Target the text area inside */
     [data-testid="stChatInput"] textarea {
-        background-color: #2d3748 !important;
+        background-color: #374151 !important;
         color: #ffffff !important;
+        border: none !important;
+        box-shadow: none !important;
     }
 
-    /* Placeholder text should also be visible */
+    /* Target the container that holds the text area */
+    [data-testid="stChatInput"] > div {
+        background-color: #374151 !important;
+    }
+
+    /* Placeholder text */
     [data-testid="stChatInput"] textarea::placeholder {
         color: #a0aec0 !important;
     }
 
-    /* Add a slight glow when the user clicks into the box */
+    /* Focus state for the entire container */
     [data-testid="stChatInput"]:focus-within {
         border: 1px solid #0078ff !important;
         box-shadow: 0 0 10px rgba(0, 120, 255, 0.4);
-        background-color: #374151 !important;
+        background-color: #4b5563 !important;
     }
 
-    /* Ensure the text area maintains gray background on focus */
-    [data-testid="stChatInput"]:focus-within textarea {
-        background-color: #374151 !important;
+    /* Ensure all child elements have appropriate background on focus */
+    [data-testid="stChatInput"]:focus-within textarea,
+    [data-testid="stChatInput"]:focus-within > div {
+        background-color: #4b5563 !important;
+    }
+
+    /* Style the send button */
+    [data-testid="stChatInput"] button {
+        background-color: #0078ff !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 8px !important;
+    }
+
+    [data-testid="stChatInput"] button:hover {
+        background-color: #0056cc !important;
     }
 
     [class="st-emotion-cache-128upt6 e1td4qo63"] {
