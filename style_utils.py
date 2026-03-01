@@ -96,7 +96,7 @@ def apply_custom_style():
 
     /* Specific styling for Buttons (Login, etc.) */
     .stButton>button {
-        background-color: #1a1c23 !important; /* Dark charcoal */
+        background-color: transparent !important; /* Transparent by default */
         color: #ffffff !important;           /* Pure white text */
         border: 1px solid #0078ff !important; /* Garmin Blue border */
         border-radius: 8px;
@@ -117,6 +117,7 @@ def apply_custom_style():
     .stButton>button:hover {
         background-color: #0078ff !important; /* Blue background on hover */
         color: #ffffff !important;
+        border: 1px solid #0078ff !important;
         box-shadow: 0 0 15px rgba(0, 120, 255, 0.4);
     }
 
@@ -125,11 +126,13 @@ def apply_custom_style():
         transform: scale(0.98);
         background-color: #0056cc !important;
         color: #ffffff !important;
+        border: 1px solid #0056cc !important;
     }
 
-    /* Make sure form submit buttons are also styled */
-    div[data-testid="stForm"] button {
-        background-color: #1a1c23 !important;
+    /* Make sure form submit buttons are also styled - match regular buttons */
+    div[data-testid="stForm"] button,
+    div[data-testid="stFormSubmitButton"] button {
+        background-color: transparent !important;
         color: #ffffff !important;
         border: 1px solid #0078ff !important;
         border-radius: 8px;
@@ -139,15 +142,16 @@ def apply_custom_style():
         outline: none !important;
     }
 
-    div[data-testid="stForm"] button:hover {
+    div[data-testid="stForm"] button:hover,
+    div[data-testid="stFormSubmitButton"] button:hover {
         background-color: #0078ff !important;
         color: #ffffff !important;
         border: 1px solid #0078ff !important;
     }
 
-    /* Style for critique buttons specifically */
+    /* Style for critique buttons specifically - make them transparent by default */
     button[kind="secondary"], button[kind="primary"] {
-        background-color: #1a1c23 !important;
+        background-color: transparent !important;
         color: #ffffff !important;
         border: 1px solid #0078ff !important;
     }
@@ -155,6 +159,7 @@ def apply_custom_style():
     button[kind="secondary"]:hover, button[kind="primary"]:hover {
         background-color: #0078ff !important;
         color: #ffffff !important;
+        border: 1px solid #0078ff !important;
     }
 
     /* Chat Input & Bottom UI */
@@ -193,7 +198,7 @@ def apply_custom_style():
     
     /* Style for week/month/year buttons in sidebar */
     .stButton button[kind="secondary"] {
-        background-color: #1a1c23 !important;
+        background-color: transparent !important;
         color: #ffffff !important;
         border: 1px solid #0078ff !important;
     }
@@ -201,6 +206,7 @@ def apply_custom_style():
     .stButton button[kind="secondary"]:hover {
         background-color: #0078ff !important;
         color: #ffffff !important;
+        border: 1px solid #0078ff !important;
     }
     
     /* Dark Chat Input Styling - Target the entire container */
