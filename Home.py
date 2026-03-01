@@ -290,7 +290,7 @@ if __name__ == "__main__":
             st.markdown("### 🏁 Race Predictions")
             try:
                 from data_utils import get_race_predictions, format_prediction_time
-                predictions = get_race_predictions(email, pwd)
+                predictions = get_race_predictions(email, pwd, None, None)
                 if predictions:
                     col1, col2 = st.columns(2)
                     with col1:

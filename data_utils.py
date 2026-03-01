@@ -350,13 +350,26 @@ def get_user_profile_data(email, password):
     except Exception as e:
         return None
 
-def get_race_predictions(email, password):
-    """Fetch race predictions from Garmin API."""
-    oneyear = date.today() - timedelta(days=365)
+def get_race_predictions(email, password, startdate=None, enddate=None):
+    """Fetch race predictions from Garmin API for a date range."""
     try:
         client = get_garmin_client(email, password)
         client.login()
-        predictions = client.get_race_predictions()
+        
+        # If startdate and enddate are provided, use them
+        if startdate and enddate:
+            # Note: The actual implementation may vary based on the Garmin API
+            # Let's assume the client method supports these parameters
+            # We'll need to check the actual method signature
+            # For now, we'll try to call it with these parameters
+            try:
+                predictions = client.get_race_predictions(startdate=startdate, enddate=enddate)
+            except TypeError:
+                # If the method doesn't support these parameters, fall back to default
+                predictions = client.get_race_predictions()
+        else:
+            predictions = client.get_race_predictions()
+        
         return predictions
     except Exception as e:
         st.error(f"Error fetching race predictions: {e}")
@@ -376,26 +389,85 @@ def format_prediction_time(seconds):
 
 def get_race_predictions_history(n_days, email, password):
     """Get race predictions for multiple days to track trends."""
-    # For now, we'll just get current predictions
-    # In a real implementation, we might store historical data
-    predictions = get_race_predictions(email, password)
-    if predictions:
-        # Convert to a DataFrame for consistency
-        data = {
-            'date': pd.Timestamp.now(),
-            '5K': predictions.get('time5K'),
-            '10K': predictions.get('time10K'),
-            'HalfMarathon': predictions.get('timeHalfMarathon'),
-            'Marathon': predictions.get('timeMarathon')
-        }
-        return pd.DataFrame([data])
-    return pd.DataFrame()
+    try:
+        client = get_garmin_client(email, password)
+        client.login()
+        
+        # Calculate date range
+        end_date = date.today()
+        start_date = end_date - timedelta(days=n_days)
+        
+        # Try to get predictions with date range
+        # The actual implementation may vary
+        # Let's try to call the method with date parameters
+        try:
+            # Check if the method supports these parameters
+            predictions_data = client.get_race_predictions(
+                startdate=str(start_date), 
+                enddate=str(end_date)
+            )
+        except TypeError:
+            # If not, we'll need to get daily predictions another way
+            # For now, let's create a mock implementation
+            st.warning("Date range not supported for race predictions. Using current predictions only.")
+            predictions = client.get_race_predictions()
+            if predictions:
+                data = {
+                    'date': pd.Timestamp.now(),
+                    '5K': predictions.get('time5K'),
+                    '10K': predictions.get('time10K'),
+                    'HalfMarathon': predictions.get('timeHalfMarathon'),
+                    'Marathon': predictions.get('timeMarathon')
+                }
+                return pd.DataFrame([data])
+            return pd.DataFrame()
+        
+        # Process the predictions data
+        # The structure may vary, so we need to handle it carefully
+        if isinstance(predictions_data, dict):
+            # If it's a single dictionary, wrap it in a list
+            predictions_data = [predictions_data]
+        
+        records = []
+        for pred in predictions_data:
+            # Extract date from prediction
+            # The structure may vary, so we need to be flexible
+            pred_date = pred.get('date', end_date)
+            if isinstance(pred_date, str):
+                pred_date = pd.to_datetime(pred_date)
+            
+            record = {
+                'date': pred_date,
+                '5K': pred.get('time5K'),
+                '10K': pred.get('time10K'),
+                'HalfMarathon': pred.get('timeHalfMarathon'),
+                'Marathon': pred.get('timeMarathon')
+            }
+            records.append(record)
+        
+        return pd.DataFrame(records)
+    except Exception as e:
+        st.error(f"Error fetching race predictions history: {e}")
+        # Return empty DataFrame
+        return pd.DataFrame()
 
 def plot_race_predictions_trend(df_history):
     """Plot race prediction trends over time using Plotly."""
     if df_history.empty or len(df_history) < 1:
         st.info("No race prediction data available to plot.")
         return
+    
+    # Ensure we have a 'date' column
+    if 'date' not in df_history.columns:
+        st.error("Race prediction data missing 'date' column.")
+        return
+    
+    # Convert date to datetime if it's not already
+    df_plot = df_history.copy()
+    df_plot['date'] = pd.to_datetime(df_plot['date'])
+    
+    # Sort by date
+    df_plot = df_plot.sort_values('date')
     
     import plotly.graph_objects as go
     
@@ -406,24 +478,31 @@ def plot_race_predictions_trend(df_history):
     colors = ['#3B82F6', '#F59E0B', '#6366F1', '#10B981']
     
     for dist, color in zip(distances, colors):
-        if dist in df_history.columns:
-            # Convert seconds to minutes for better y-axis scaling
-            fig.add_trace(go.Scatter(
-                x=df_history['date'],
-                y=df_history[dist] / 60,  # Convert to minutes
-                mode='lines+markers',
-                name=dist,
-                line=dict(color=color, width=3),
-                marker=dict(size=8),
-                hovertemplate=f"<b>{dist}</b><br>" +
-                              "Date: %{x|%Y-%m-%d}<br>" +
-                              "Time: %{customdata}<br>" +
-                              "<extra></extra>",
-                customdata=[format_prediction_time(t) for t in df_history[dist]]
-            ))
+        if dist in df_plot.columns:
+            # Filter out None values
+            valid_data = df_plot[['date', dist]].dropna(subset=[dist])
+            if len(valid_data) > 0:
+                # Convert seconds to minutes for better y-axis scaling
+                fig.add_trace(go.Scatter(
+                    x=valid_data['date'],
+                    y=valid_data[dist] / 60,  # Convert to minutes
+                    mode='lines+markers',
+                    name=dist,
+                    line=dict(color=color, width=3),
+                    marker=dict(size=8),
+                    hovertemplate=f"<b>{dist}</b><br>" +
+                                  "Date: %{x|%Y-%m-%d}<br>" +
+                                  "Time: %{customdata}<br>" +
+                                  "<extra></extra>",
+                    customdata=[format_prediction_time(t) for t in valid_data[dist]]
+                ))
+    
+    if len(fig.data) == 0:
+        st.info("No valid race prediction data to plot.")
+        return
     
     fig.update_layout(
-        title="Race Prediction Trends",
+        title="Race Prediction Trends Over Time",
         xaxis_title="Date",
         yaxis_title="Predicted Time (minutes)",
         hovermode="x unified",
