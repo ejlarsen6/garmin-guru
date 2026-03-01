@@ -17,7 +17,7 @@ streamlit_folium
 
 
 # Vector Store
-chromadb==0.5.22
+chromadb==0.5.23
 
 # Embeddings
 gpt4all==2.8.2
