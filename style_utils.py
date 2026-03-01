@@ -60,6 +60,28 @@ def apply_custom_style():
         border-radius: 15px;
         box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
     }
+    
+    /* Style for expander headers to ensure text is visible */
+    .st-expanderHeader p,
+    .st-expanderHeader span,
+    .st-expanderHeader div,
+    .st-expanderHeader label {
+        color: #ffffff !important;
+    }
+    
+    /* Make sure the expander header button is styled correctly */
+    .st-expanderHeader button {
+        background-color: transparent !important;
+        color: #ffffff !important;
+        border: none !important;
+        box-shadow: none !important;
+        outline: none !important;
+    }
+    
+    .st-expanderHeader button:hover {
+        background-color: rgba(255, 255, 255, 0.1) !important;
+        color: #ffffff !important;
+    }
 
     /* Sidebar Specific Styling */
     [data-testid="stSidebar"] {
@@ -81,6 +103,8 @@ def apply_custom_style():
         padding: 0.5rem 1rem;
         transition: all 0.3s ease;
         font-weight: 500 !important;
+        box-shadow: none !important;
+        outline: none !important;
     }
 
     /* Ensure all button text is always visible */
@@ -111,11 +135,14 @@ def apply_custom_style():
         border-radius: 8px;
         padding: 0.5rem 1rem;
         font-weight: 500 !important;
+        box-shadow: none !important;
+        outline: none !important;
     }
 
     div[data-testid="stForm"] button:hover {
         background-color: #0078ff !important;
         color: #ffffff !important;
+        border: 1px solid #0078ff !important;
     }
 
     /* Style for critique buttons specifically */
@@ -237,11 +264,14 @@ def apply_custom_style():
         border-radius: 8px;
         padding: 0.5rem 1rem;
         font-weight: 500 !important;
+        box-shadow: none !important;
+        outline: none !important;
     }
     
     div[data-testid="stFormSubmitButton"] button:hover {
         background-color: #0078ff !important;
         color: #ffffff !important;
+        border: 1px solid #0078ff !important;
     }
     
     [class="st-emotion-cache-128upt6 e1td4qo63"] {
