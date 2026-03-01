@@ -25,7 +25,7 @@ from datetime import datetime, date, timedelta
 from langchain_core.messages import SystemMessage
 from langchain_experimental.agents.agent_toolkits import create_pandas_dataframe_agent
 import matplotlib.pyplot as plt
-from data_utils import get_cached_workout_data, summarize_n_days, get_training_stress, get_workout_dataframe_n_days
+from data_utils import get_cached_workout_data, summarize_n_days, get_training_stress, get_workout_dataframe_n_days, check_fitness_trend
 from style_utils import apply_custom_style
 GARMIN_CACHE = None
 load_dotenv("cred.env")
@@ -40,7 +40,6 @@ if "memory" not in st.session_state:
         chat_memory=msgs, 
         return_messages=True
     )
-
 
 # Tool Setup
 
@@ -105,6 +104,11 @@ def get_agent():
         func=workout_data_query,
         description="Query this to get stats on the user's recent running activities, pace, and heart rate."
         ),
+        Tool(
+            name="Fitness_Trend_Analyzer", 
+            func=check_fitness_trend, 
+            description="Use this to see if the user is actually getting fitter over time."
+        ),
         search_tool
     ]
 
@@ -114,7 +118,7 @@ def get_agent():
                         historical Garmin data and a library of professional coaching principles.
                         
                         ### YOUR COACHING PHILOSOPHY:
-                        1. **The 80/20 Rule**: 80% of training should be 'Easy' (Zone 1 & 2). 20% should be 'Hard' (Zone 4 & 5).
+                        1. **The 80/20 Rule**: Roughly 80% of training across the week should be 'Easy' (Zone 2, 3). About 20% should be 'Hard' (Zone 4 & 5).
                         2. **Aerobic Deficiency Check**: If the user's Pace is slow but their Average Heart Rate is high, 
                            advise them to focus on building their aerobic base.
                         3. **Context Matters**: If a run has significant 'Elev Gain (ft)', do not penalize the user for a 
@@ -124,8 +128,11 @@ def get_agent():
                         ### TOOL USAGE RULES:
                         - Use **Workout_Data_Analyzer** to get specific numbers (e.g., "What was my Z2 time yesterday?").
                         - Use **coaching_expert** to explain *why* a certain heart rate zone matters based on the PDFs.
+                        - Use **Fitness_Trend_Analyzer** to see if the user is  getting fitter over time.
                         - Use the search tool to search for relevant information on the internet.
                         - Always provide a 'Coach's Verdict' at the end of an analysis: [Optimizing, Overreaching, or Detraining]. A verdict is only necessary if you are asked to analyze activities.
+
+                        There's no need to summarize all basic workout details, as the user is able to see those. Just provide insight into future action, and the way the user is trending and performing. 
                         """
     instructions = SystemMessage(content=Custom_Coach_Prompt)
     
@@ -265,8 +272,6 @@ if __name__ == "__main__":
                 st.success("You're in the training 'Sweet Spot.' Keep it up!")
             else:
                 st.info("You are currently in a recovery phase or decreasing volume.")
-                
-    st.divider()
 
     if df is not None and not df.empty:
         st.divider()
@@ -276,24 +281,34 @@ if __name__ == "__main__":
         for index, row in df.iterrows():
             # Create a unique container for each run
             with st.container(border=True):
-                col1, col2 = st.columns([3, 1])
+                col1, col2 = st.columns([1, 3])
                 
                 with col1:
-                    st.subheader(f"{row['Date'].strftime('%A, %b %d')} — {row['Activity Name']}")
-                    
+                    # st.subheader(f"{row['Date'].strftime('%A, %b %d')} — {row['Activity Name']}")
+                    st.markdown(f"**{row['Date'].strftime('%A, %b %d')} — {row['Activity Name']}**")
                     # Horizontal metrics for this specific run
                     m1, m2, m3, m4 = st.columns(4)
-                    m1.metric("Distance", f"{row['Distance (mi)']} mi")
-                    m2.metric("Pace", f"{row['Pace_Decimal']:.2f}/mi")
-                    m3.metric("Avg HR", f"{row['Avg HR']} bpm")
-                    m4.metric("Elevation", f"{row['Elev Gain (ft)']} ft")
+                    m1.markdown(f"<p style='font-size:12px;margin-bottom:0;'>Distance</p><h4 style='margin-top:0;'>{row['Distance (mi)']}</h4>", unsafe_allow_html=True)
+                    m2.markdown(f"<p style='font-size:12px;margin-bottom:0;'>Pace</p><h4 style='margin-top:0;'>{row['Pace_Decimal']:.2f}</h4>", unsafe_allow_html=True)
+                    m3.markdown(f"<p style='font-size:12px;margin-bottom:0;'>Avg HR</p><h4 style='margin-top:0;'>{row['Avg HR']:.2f}</h4>", unsafe_allow_html=True)
+                    m4.markdown(f"<p style='font-size:12px;margin-bottom:0;'>Elev Gain (ft)</p><h4 style='margin-top:0;'>{row['Elev Gain (ft)']:.2f}</h4>", unsafe_allow_html=True)
                 
                 with col2:
                     # Place the "Critique" button inside the card
                     if st.button("Critique", key=f"btn_{index}"):
                         with st.spinner("Analyzing..."):
-                            critique_query = f"Analyze this specific run: {row.to_json()}. Based on the HR zones and pace, was this a good workout? Check the coaching PDFs for context. \
-                            Suggest ways to improve."
+                            critique_query = f"""Analyze this specific run: {row.to_json()}. Based on the HR zones and pace, was this a good workout? Check the coaching PDFs for context. \
+                            Some basic info on Heart rate zones:
+                            Zone 1: Very Light (50-60% of MHR): Warm-up, cool-down, and active recovery.
+                            Zone 2: Light (60-70% of MHR): Baseline aerobic, improves endurance, burns higher percentage of fat.
+                            Zone 3: Moderate (70-80% of MHR): Aerobic, improves cardiovascular fitness and muscular endurance.
+                            Zone 4: Hard (80-90% of MHR): High intensity, improves speed and anaerobic capacity.
+                            Zone 5: Maximum (90-100% of MHR): Peak effort, short bursts for maximum speed and power.
+                            ### CONTEXTUAL DATA:
+                                - Current Training Stress Ratio: {stress_score} 
+                                - Recent VO2 Max: {stats.get('Current VO2 Max')}
+                                - Recent Run Data: {df}
+                            Suggest ways to improve."""
                             history = st.session_state.memory.load_memory_variables({})["chat_history"]
                             response = st.session_state.coach_agent.invoke({
                                 "input": critique_query,
@@ -306,7 +321,6 @@ if __name__ == "__main__":
                     zones = {"Z1": row['Z1_Min'], "Z2": row['Z2_Min'], "Z3": row['Z3_Min'], "Z4": row['Z4_Min'], "Z5": row['Z5_Min']}
                     st.bar_chart(pd.Series(zones), horizontal=True, height=150)
 
-    st.divider()
     
     with st.expander("📊 View Recent Activity Data"):
         if df is not None:
