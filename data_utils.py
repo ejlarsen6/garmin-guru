@@ -49,7 +49,8 @@ def get_workout_dataframe_n_days(n_days, email, password):
 
         data_list = []
         for act in activities:
-            if act["activityType"]["typeKey"] != "running":
+            if "running" not in act["activityType"]["typeKey"]:
+                print(act["activityType"]["typeKey"])
                 continue
             
             dist_mi = act.get('distance', 0) / 1609.34
