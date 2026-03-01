@@ -352,6 +352,7 @@ def get_user_profile_data(email, password):
 
 def get_race_predictions(email, password):
     """Fetch race predictions from Garmin API."""
+    oneyear = date.today() - timedelta(days=365)
     try:
         client = get_garmin_client(email, password)
         client.login()

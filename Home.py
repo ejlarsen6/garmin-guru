@@ -340,7 +340,7 @@ if __name__ == "__main__":
         for index, row in df.iterrows():
             # Create a unique container for each run
             with st.container(border=True):
-                col1, col2 = st.columns([1, 3])
+                col1, col2 = st.columns([2, 3])
                 
                 with col1:
                     # st.subheader(f"{row['Date'].strftime('%A, %b %d')} — {row['Activity Name']}")
@@ -349,8 +349,8 @@ if __name__ == "__main__":
                     m1, m2, m3, m4 = st.columns(4)
                     m1.markdown(f"<p style='font-size:12px;margin-bottom:0;'>Distance</p><h4 style='margin-top:0;'>{row['Distance (mi)']}</h4>", unsafe_allow_html=True)
                     m2.markdown(f"<p style='font-size:12px;margin-bottom:0;'>Pace</p><h4 style='margin-top:0;'>{row['Pace_Decimal']:.2f}</h4>", unsafe_allow_html=True)
-                    m3.markdown(f"<p style='font-size:12px;margin-bottom:0;'>Avg HR</p><h4 style='margin-top:0;'>{row['Avg HR']:.2f}</h4>", unsafe_allow_html=True)
-                    m4.markdown(f"<p style='font-size:12px;margin-bottom:0;'>Elev Gain (ft)</p><h4 style='margin-top:0;'>{row['Elev Gain (ft)']:.2f}</h4>", unsafe_allow_html=True)
+                    m3.markdown(f"<p style='font-size:12px;margin-bottom:0;'>Avg HR</p><h4 style='margin-top:0;'>{row['Avg HR']}</h4>", unsafe_allow_html=True)
+                    m4.markdown(f"<p style='font-size:12px;margin-bottom:0;'>Elev Gain (ft)</p><h4 style='margin-top:0;'>{row['Elev Gain (ft)']}</h4>", unsafe_allow_html=True)
                 
                 with col2:
                     # Place the "Critique" button inside the card
