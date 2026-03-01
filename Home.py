@@ -2,6 +2,7 @@ import streamlit as st
 from langchain_community.chat_message_histories import StreamlitChatMessageHistory
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 import os
+os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
 import pandas as pd
 from dotenv import load_dotenv
 from langchain.agents import AgentExecutor, create_tool_calling_agent
@@ -25,7 +26,7 @@ from datetime import datetime, date, timedelta
 from langchain_core.messages import SystemMessage
 from langchain_experimental.agents.agent_toolkits import create_pandas_dataframe_agent
 import matplotlib.pyplot as plt
-from data_utils import get_cached_workout_data, summarize_n_days, get_training_stress, get_workout_dataframe_n_days, check_fitness_trend
+from data_utils import get_cached_workout_data, summarize_n_days, get_training_stress, get_workout_dataframe_n_days, check_fitness_trend, get_efficiency_trend
 from style_utils import apply_custom_style
 GARMIN_CACHE = None
 load_dotenv("cred.env")
@@ -147,6 +148,11 @@ def get_agent():
             func=check_fitness_trend, 
             description="Use this to see if the user is actually getting fitter over time."
         ),
+        Tool(
+        name="Efficiency_Trend_Analyzer",
+        func=get_efficiency_trend,
+        description="Use this to see if the user's cardiovascular fitness is improving over time by comparing speed to heart rate."
+        ),
         search_tool
     ]
 
@@ -168,6 +174,9 @@ def get_agent():
                         - Use **coaching_expert** to explain *why* a certain heart rate zone matters based on the PDFs.
                         - Use **training_plans** to find structured training schedules, periodization plans, and workout sequences.
                         - Use **Fitness_Trend_Analyzer** to see if the user is  getting fitter over time.
+                        - When the user asks "How am I doing?", you can check the **Efficiency_Trend_Analyzer**.
+                            - If AEI is **improving**, praise their aerobic base building (even if individual runs feel slow).
+                            - If AEI is **declining** while Stress Ratio is high (>1.3), warn them of "Accumulated Fatigue" and suggest recovery.
                         - Use the search tool to search for relevant information on the internet.
                         - Always provide a 'Coach's Verdict' at the end of an analysis: [Optimizing, Overreaching, or Detraining]. A verdict is only necessary if you are asked to analyze activities.
 
