@@ -255,9 +255,8 @@ def apply_custom_style():
     }
 
     /* Style for form submit buttons (like login) */
-    div[data-testid="stFormSubmitButton"] button,
-    div[data-testid="stFormSubmitButton"] button p,
     div[data-testid="stFormSubmitButton"] button span {
+    
         background-color: #1a1c23 !important;
         color: #ffffff !important;
         border: 1px solid #0078ff !important;
@@ -280,3 +279,5 @@ def apply_custom_style():
     
     </style>
     """, unsafe_allow_html=True)
+# div[data-testid="stFormSubmitButton"] button,
+#     div[data-testid="stFormSubmitButton"] button p,
