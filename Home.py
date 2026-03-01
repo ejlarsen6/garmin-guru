@@ -285,6 +285,26 @@ if __name__ == "__main__":
             st.metric("Current VO2 Max", f"{stats.get('Current VO2 Max', 'N/A')}")
     
             st.divider()
+            
+            # Race Predictions Section
+            st.markdown("### 🏁 Race Predictions")
+            try:
+                from data_utils import get_race_predictions, format_prediction_time
+                predictions = get_race_predictions(email, pwd)
+                if predictions:
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.metric("5K", format_prediction_time(predictions.get('time5K')))
+                        st.metric("10K", format_prediction_time(predictions.get('time10K')))
+                    with col2:
+                        st.metric("Half Marathon", format_prediction_time(predictions.get('timeHalfMarathon')))
+                        st.metric("Marathon", format_prediction_time(predictions.get('timeMarathon')))
+                else:
+                    st.info("No race predictions available.")
+            except Exception as e:
+                st.warning(f"Could not load race predictions: {e}")
+            
+            st.divider()
 
     if df is not None and not df.empty:
         # Get the Stress Score

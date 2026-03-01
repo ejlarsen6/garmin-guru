@@ -308,6 +308,99 @@ def get_user_profile_data(email, password):
     except Exception as e:
         return None
 
+def get_race_predictions(email, password):
+    """Fetch race predictions from Garmin API."""
+    try:
+        client = get_garmin_client(email, password)
+        client.login()
+        predictions = client.get_race_predictions()
+        return predictions
+    except Exception as e:
+        st.error(f"Error fetching race predictions: {e}")
+        return None
+
+def format_prediction_time(seconds):
+    """Convert seconds to HH:MM:SS or MM:SS format."""
+    if seconds is None:
+        return "N/A"
+    hours = seconds // 3600
+    minutes = (seconds % 3600) // 60
+    secs = seconds % 60
+    if hours > 0:
+        return f"{int(hours):02d}:{int(minutes):02d}:{int(secs):02d}"
+    else:
+        return f"{int(minutes):02d}:{int(secs):02d}"
+
+def get_race_predictions_history(n_days, email, password):
+    """Get race predictions for multiple days to track trends."""
+    # For now, we'll just get current predictions
+    # In a real implementation, we might store historical data
+    predictions = get_race_predictions(email, password)
+    if predictions:
+        # Convert to a DataFrame for consistency
+        data = {
+            'date': pd.Timestamp.now(),
+            '5K': predictions.get('time5K'),
+            '10K': predictions.get('time10K'),
+            'HalfMarathon': predictions.get('timeHalfMarathon'),
+            'Marathon': predictions.get('timeMarathon')
+        }
+        return pd.DataFrame([data])
+    return pd.DataFrame()
+
+def plot_race_predictions_trend(df_history):
+    """Plot race prediction trends over time using Plotly."""
+    if df_history.empty or len(df_history) < 1:
+        st.info("No race prediction data available to plot.")
+        return
+    
+    import plotly.graph_objects as go
+    
+    fig = go.Figure()
+    
+    # Add traces for each race distance
+    distances = ['5K', '10K', 'HalfMarathon', 'Marathon']
+    colors = ['#3B82F6', '#F59E0B', '#6366F1', '#10B981']
+    
+    for dist, color in zip(distances, colors):
+        if dist in df_history.columns:
+            # Convert seconds to minutes for better y-axis scaling
+            fig.add_trace(go.Scatter(
+                x=df_history['date'],
+                y=df_history[dist] / 60,  # Convert to minutes
+                mode='lines+markers',
+                name=dist,
+                line=dict(color=color, width=3),
+                marker=dict(size=8),
+                hovertemplate=f"<b>{dist}</b><br>" +
+                              "Date: %{x|%Y-%m-%d}<br>" +
+                              "Time: %{customdata}<br>" +
+                              "<extra></extra>",
+                customdata=[format_prediction_time(t) for t in df_history[dist]]
+            ))
+    
+    fig.update_layout(
+        title="Race Prediction Trends",
+        xaxis_title="Date",
+        yaxis_title="Predicted Time (minutes)",
+        hovermode="x unified",
+        template="plotly_dark",
+        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="rgba(0,0,0,0)",
+        font=dict(color="#fafafa"),
+        xaxis=dict(
+            showgrid=False,
+            tickangle=45
+        ),
+        yaxis=dict(
+            showgrid=True,
+            gridcolor="rgba(255,255,255,0.1)"
+        ),
+        height=500
+    )
+    
+    st.plotly_chart(fig, use_container_width=True)
+
 def get_training_stress(df):
     """Calculates the ratio of last 7 days volume vs last 30 days."""
     if df is None or df.empty:

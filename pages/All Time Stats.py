@@ -51,6 +51,14 @@ if df_analytics is not None and not df_analytics.empty:
     plot_weekly_training_time(df_analytics)
 
     st.divider()
+    
+    st.subheader("Race Predictions Trend")
+    # Get race predictions history
+    with st.spinner("Fetching race predictions..."):
+        pred_history = get_race_predictions_history(n_days, email, password)
+        plot_race_predictions_trend(pred_history)
+
+    st.divider()
 
     with st.expander("View Raw Data for this Range"):
         st.dataframe(df_analytics)
