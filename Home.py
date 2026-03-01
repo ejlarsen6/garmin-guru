@@ -318,16 +318,28 @@ if __name__ == "__main__":
             msgs.clear()
             st.session_state.memory.clear()
             st.session_state.range_days = 7
+            # Clear all critique responses
+            for key in list(st.session_state.keys()):
+                if key.startswith("critique_"):
+                    del st.session_state[key]
             st.rerun()
         if c2.button("Month"):
             msgs.clear()
             st.session_state.memory.clear()
             st.session_state.range_days = 30
+            # Clear all critique responses
+            for key in list(st.session_state.keys()):
+                if key.startswith("critique_"):
+                    del st.session_state[key]
             st.rerun()
         if c3.button("Year"):
             msgs.clear()
             st.session_state.memory.clear()
             st.session_state.range_days = 365
+            # Clear all critique responses
+            for key in list(st.session_state.keys()):
+                if key.startswith("critique_"):
+                    del st.session_state[key]
             st.rerun()
 
         if df is not None and not df.empty:
@@ -426,7 +438,15 @@ if __name__ == "__main__":
                                 "input": critique_query,
                                 "chat_history": history
                             })
-                            st.info(response["output"])
+                            # Store the critique response in session state with a unique key
+                            st.session_state[f"critique_{index}"] = response["output"]
+                            # Force a rerun to show the expander
+                            st.rerun()
+                
+                # Display the critique in a collapsible expander if it exists
+                if f"critique_{index}" in st.session_state:
+                    with st.expander("View Critique", expanded=True):
+                        st.info(st.session_state[f"critique_{index}"])
             
                 # Optional: Add a small HR Zone mini-chart inside the card
                 with st.expander("View Zone Breakdown"):
