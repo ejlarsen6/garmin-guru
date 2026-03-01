@@ -302,7 +302,7 @@ if __name__ == "__main__":
                 enddate=str(date.today())
                 startdate = str(date.today() - timedelta(days=365))
                 predictions = get_race_predictions(email, pwd, startdate, enddate)
-                if predictions:
+                if predictions and isinstance(predictions, dict):
                     col1, col2 = st.columns(2)
                     with col1:
                         st.metric("5K", format_prediction_time(predictions.get('time5K')))
