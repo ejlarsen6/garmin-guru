@@ -57,6 +57,7 @@ def get_agent():
     embeddings = GPT4AllEmbeddings()
 
     # Vector Stores
+    # Coaching store
     if os.path.exists("docs/coaching-store"):
         coaching_store = FAISS.load_local("docs/coaching-store", embeddings, allow_dangerous_deserialization=True)
         coaching_retriever = coaching_store.as_retriever()
@@ -71,6 +72,34 @@ def get_agent():
         coaching_store = FAISS.from_documents(coaching_chunks, embeddings)
         coaching_retriever = coaching_store.as_retriever()
         coaching_store.save_local("docs/coaching-store")
+    
+    # Training plans store
+    training_plans_path = "docs/training_plans"
+    if os.path.exists("docs/plan-store"):
+        plan_store = FAISS.load_local("docs/plan-store", embeddings, allow_dangerous_deserialization=True)
+        plan_retriever = plan_store.as_retriever()
+    else:
+        plan_docs = []
+        # Check if training_plans directory exists
+        if os.path.exists(training_plans_path):
+            for file in os.listdir(training_plans_path):
+                if file.endswith(".pdf"):
+                    loader = PyPDFLoader(os.path.join(training_plans_path, file))
+                    plan_docs.extend(loader.load())
+        else:
+            # Create an empty list if directory doesn't exist
+            plan_docs = []
+        
+        if plan_docs:
+            plan_chunks = splitter.split_documents(plan_docs)
+            plan_store = FAISS.from_documents(plan_chunks, embeddings)
+            plan_retriever = plan_store.as_retriever()
+            plan_store.save_local("docs/plan-store")
+        else:
+            # Create an empty vector store if no documents
+            plan_store = FAISS.from_documents([], embeddings)
+            plan_retriever = plan_store.as_retriever()
+            plan_store.save_local("docs/plan-store")
 
     llm = ChatGoogleGenerativeAI(model="models/gemini-2.5-flash", google_api_key = api_key, temperature=0.15)
 
@@ -91,6 +120,10 @@ def get_agent():
         except Exception as e:
             return f"Error analyzing data: {str(e)}"
 
+    def plan_retrieval(q):
+        docs = plan_retriever.invoke(q)
+        return "\n\n".join([d.page_content for d in docs])
+
     search_tool = TavilySearchResults(tavily_api_key = os.getenv("TAVILY_API_KEY"))
 
     tools = [
@@ -99,6 +132,11 @@ def get_agent():
             func=lambda q: coach_retrieval(q, coaching_retriever),
             description="Search this for analytical running principles and workout definitions."
         ), 
+        Tool(
+            name="training_plans",
+            func=plan_retrieval,
+            description="Search this for structured training plans, workout schedules, and periodization strategies."
+        ),
         Tool(
         name="Workout_Data_Analyzer",
         func=workout_data_query,
@@ -128,6 +166,7 @@ def get_agent():
                         ### TOOL USAGE RULES:
                         - Use **Workout_Data_Analyzer** to get specific numbers (e.g., "What was my Z2 time yesterday?").
                         - Use **coaching_expert** to explain *why* a certain heart rate zone matters based on the PDFs.
+                        - Use **training_plans** to find structured training schedules, periodization plans, and workout sequences.
                         - Use **Fitness_Trend_Analyzer** to see if the user is  getting fitter over time.
                         - Use the search tool to search for relevant information on the internet.
                         - Always provide a 'Coach's Verdict' at the end of an analysis: [Optimizing, Overreaching, or Detraining]. A verdict is only necessary if you are asked to analyze activities.
