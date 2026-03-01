@@ -81,8 +81,19 @@ def get_workout_dataframe_n_days(n_days, email, password):
 def get_cached_workout_data(days, email, password):
     return get_workout_dataframe_n_days(days, email, password)
 
-# Calculations
-
+def check_fitness_trend(query: str):
+    df = st.session_state.get("df_master")
+    # Sort by date
+    df = df.sort_values('Date')
+    # Calculate "Efficiency Index" (Pace / Avg HR)
+    df['Efficiency'] = (1 / df['Pace_Decimal']) / df['Avg HR'] * 1000
+    
+    # Compare first 2 weeks vs last 2 weeks
+    recent = df.tail(14)['Efficiency'].mean()
+    older = df.iloc[:-14].tail(14)['Efficiency'].mean()
+    improvement = ((recent - older) / older) * 100
+    
+    return f"In the last 14 days, your aerobic efficiency has changed by {improvement:.1f}% compared to the prior period."
 
 def most_active_month(df):
     df['Month'] = df['Date'].dt.month
