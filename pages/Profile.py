@@ -51,8 +51,8 @@ if profile:
     # Personal Bests
     st.subheader("Current Personal Bests 🔥 ")
     
-    if st.session_state.get("df_all_time") is not None:
-        pbs_df = get_pbs(st.session_state.df_all_time)
+    if st.session_state.get("df_master") is not None:
+        pbs_df = get_pbs(st.session_state.df_master)
         
         if not pbs_df.empty:
             # Create 3 columns for 1 Mile, 5K, and 10K

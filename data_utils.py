@@ -363,12 +363,12 @@ def get_race_predictions(email, password, startdate=None, enddate=None):
             # We'll need to check the actual method signature
             # For now, we'll try to call it with these parameters
             try:
-                predictions = client.get_race_predictions(startdate=startdate, enddate=enddate)
-            except TypeError:
+                predictions = client.get_race_predictions(startdate=startdate, enddate=enddate, _type="daily")
+            except ValueError:
                 # If the method doesn't support these parameters, fall back to default
-                predictions = client.get_race_predictions()
+                predictions = client.get_race_predictions(startdate=startdate, enddate=enddate, _type="daily")
         else:
-            predictions = client.get_race_predictions()
+            predictions = client.get_race_predictions(startdate=startdate, enddate=enddate, _type="daily")
         
         return predictions
     except Exception as e:
@@ -396,15 +396,13 @@ def get_race_predictions_history(n_days, email, password):
         # Calculate date range
         end_date = date.today()
         start_date = end_date - timedelta(days=n_days)
-        
-        # Try to get predictions with date range
-        # The actual implementation may vary
-        # Let's try to call the method with date parameters
+
         try:
             # Check if the method supports these parameters
             predictions_data = client.get_race_predictions(
                 startdate=str(start_date), 
-                enddate=str(end_date)
+                enddate=str(end_date),
+                _type="daily"
             )
         except TypeError:
             # If not, we'll need to get daily predictions another way
@@ -432,7 +430,7 @@ def get_race_predictions_history(n_days, email, password):
         for pred in predictions_data:
             # Extract date from prediction
             # The structure may vary, so we need to be flexible
-            pred_date = pred.get('date', end_date)
+            pred_date = pred.get('calendarDate', end_date)
             if isinstance(pred_date, str):
                 pred_date = pd.to_datetime(pred_date)
             

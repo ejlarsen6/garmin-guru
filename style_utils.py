@@ -1,4 +1,23 @@
 import streamlit as st
+import plotly.express as px
+import plotly.graph_objects as go
+
+def create_themed_line_chart(df, x_col, y_col, title):
+    fig = px.line(df, x=x_col, y=y_col, title=title, template="plotly_dark")
+    
+    # Match Streamlit background (usually #0e1117 or similar)
+    fig.update_layout(
+        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="rgba(0,0,0,0)",
+        font_color="#fafafa",
+        xaxis=dict(showgrid=False),
+        yaxis=dict(showgrid=True, gridcolor="rgba(255,255,255,0.1)"),
+        hovermode="x unified"
+    )
+    # Make the line smooth and "Neon"
+    fig.update_traces(line=dict(width=3, color="#00d4ff"))
+    
+    return fig
 
 def apply_custom_style():
     st.markdown("<div id='top'></div>", unsafe_allow_html=True)
