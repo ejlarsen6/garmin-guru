@@ -370,7 +370,18 @@ def get_race_predictions(email, password, startdate=None, enddate=None):
         else:
             predictions = client.get_race_predictions(startdate=startdate, enddate=enddate, _type="daily")
         
-        return predictions
+        # Handle different return types
+        if predictions is None:
+            return None
+        elif isinstance(predictions, list):
+            if len(predictions) == 0:
+                return None
+            # Return the most recent prediction (last in the list)
+            # Assuming the list is sorted chronologically
+            return predictions[-1]
+        else:
+            # If it's a dictionary, return it directly
+            return predictions
     except Exception as e:
         st.error(f"Error fetching race predictions: {e}")
         return None
