@@ -144,7 +144,11 @@ def get_agent():
 
     def plan_retrieval(q):
         docs = plan_retriever.invoke(q)
-        return "\n\n".join([d.page_content for d in docs])
+        result = "\n\n".join([d.page_content for d in docs])
+        # If no results from vector store, return a message indicating to use search
+        if not result.strip():
+            return "No specific training plans found in the knowledge base. Consider using the search tool to find information online."
+        return result
 
     search_tool = TavilySearchResults(tavily_api_key = os.getenv("TAVILY_API_KEY"))
 
@@ -152,27 +156,27 @@ def get_agent():
         Tool(
             name="coaching_expert",
             func=lambda q: coach_retrieval(q, coaching_retriever),
-            description="Search this for analytical running principles and workout definitions."
+            description="Useful for analytical running principles, workout definitions, and coaching advice. Use when user asks about training concepts, heart rate zones, or running techniques."
         ), 
         Tool(
             name="training_plans",
             func=plan_retrieval,
-            description="Search this for structured training plans, workout schedules, and periodization strategies."
+            description="Useful for finding structured training plans, workout schedules, periodization strategies, and sample weekly schedules. Use when user asks for a training plan, weekly schedule, or workout routine."
         ),
         Tool(
-        name="Workout_Data_Analyzer",
-        func=workout_data_query,
-        description="Query this to get stats on the user's recent running activities, pace, and heart rate."
+            name="Workout_Data_Analyzer",
+            func=workout_data_query,
+            description="Useful for getting statistics on the user's recent running activities, pace, heart rate, distance, and other workout metrics. Use when user asks about their specific workout data."
         ),
         Tool(
             name="Fitness_Trend_Analyzer", 
             func=check_fitness_trend, 
-            description="Use this to see if the user is actually getting fitter over time."
+            description="Useful for analyzing whether the user is getting fitter over time based on their workout data. Use when user asks about fitness progress or trends."
         ),
         Tool(
-        name="Efficiency_Trend_Analyzer",
-        func=get_efficiency_trend,
-        description="Use this to see if the user's cardiovascular fitness is improving over time by comparing speed to heart rate."
+            name="Efficiency_Trend_Analyzer",
+            func=get_efficiency_trend,
+            description="Useful for analyzing cardiovascular fitness improvement by comparing speed to heart rate over time. Use when user asks about aerobic efficiency or cardiovascular progress."
         ),
         search_tool
     ]
@@ -193,12 +197,17 @@ def get_agent():
                         ### TOOL USAGE RULES:
                         - Use **Workout_Data_Analyzer** to get specific numbers (e.g., "What was my Z2 time yesterday?").
                         - Use **coaching_expert** to explain *why* a certain heart rate zone matters based on the PDFs.
-                        - Use **training_plans** to find structured training schedules, periodization plans, and workout sequences.
-                        - Use **Fitness_Trend_Analyzer** to see if the user is  getting fitter over time.
+                        - Use **training_plans** to find structured training schedules, periodization plans, workout sequences, and sample weekly schedules.
+                        - Use **Fitness_Trend_Analyzer** to see if the user is getting fitter over time.
                         - When the user asks "How am I doing?", you can check the **Efficiency_Trend_Analyzer**.
                             - If AEI is **improving**, praise their aerobic base building (even if individual runs feel slow).
                             - If AEI is **declining** while Stress Ratio is high (>1.3), warn them of "Accumulated Fatigue" and suggest recovery.
-                        - Use the search tool to search for relevant information on the internet.
+                        - Use the search tool to search for relevant information on the internet when you don't have specific information in your knowledge base.
+                        
+                        ### IMPORTANT:
+                        - ALWAYS use at least one tool when responding to user queries. Never respond without using a tool.
+                        - For queries about training plans, schedules, or workout routines, ALWAYS use the 'training_plans' tool.
+                        - If the 'training_plans' tool doesn't return relevant information, use the 'search_tool' to find information online.
                         - Always provide a 'Coach's Verdict' at the end of an analysis: [Optimizing, Overreaching, or Detraining]. A verdict is only necessary if you are asked to analyze activities.
 
                         There's no need to summarize all basic workout details, as the user is able to see those. Just provide insight into future action, and the way the user is trending and performing. 
