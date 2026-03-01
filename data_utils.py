@@ -432,7 +432,6 @@ def get_race_predictions_history(n_days, email, password):
             # For now, let's create a mock implementation
             st.warning("Date range not supported for race predictions. Using current predictions only.")
             predictions = client.get_race_predictions()
-            print(predictions)
             if predictions:
                 data = {
                     'date': pd.Timestamp.now(),
@@ -457,7 +456,6 @@ def get_race_predictions_history(n_days, email, password):
             pred_date = pred.get('calendarDate', end_date)
             if isinstance(pred_date, str):
                 pred_date = pd.to_datetime(pred_date)
-            print(pred)
             record = {
                 'date': pred_date,
                 '5K': pred.get('time5K'),
