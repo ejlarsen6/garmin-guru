@@ -337,8 +337,6 @@ if __name__ == "__main__":
             st.metric("Total Distance", f"{stats.get('Total Distance Run (mi)', 0):.1f} mi")
             st.metric("Elevation Gain", f"{stats.get('Total Elevation Gained (ft)', 0):,.0f} ft")
             st.metric("Current VO2 Max", f"{stats.get('Current VO2 Max', 'N/A')}")
-    
-            st.divider()
             
             # Race Predictions Section
             st.markdown("### 🏁 Race Predictions")
@@ -360,7 +358,7 @@ if __name__ == "__main__":
             except Exception as e:
                 st.warning(f"Could not load race predictions: {e}")
             
-            st.divider()
+            # st.divider()
 
     if df is not None and not df.empty:
         # Get the Stress Score
@@ -389,7 +387,6 @@ if __name__ == "__main__":
                 st.info("You are currently in a recovery phase or decreasing volume.")
 
     if df is not None and not df.empty:
-        st.divider()
         st.header("🏃 Recent Activities")
     
         # Loop through the dataframe rows to create the feed
