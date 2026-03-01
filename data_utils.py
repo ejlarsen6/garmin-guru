@@ -409,6 +409,7 @@ def get_race_predictions_history(n_days, email, password):
             # For now, let's create a mock implementation
             st.warning("Date range not supported for race predictions. Using current predictions only.")
             predictions = client.get_race_predictions()
+            print(predictions)
             if predictions:
                 data = {
                     'date': pd.Timestamp.now(),
@@ -433,7 +434,7 @@ def get_race_predictions_history(n_days, email, password):
             pred_date = pred.get('calendarDate', end_date)
             if isinstance(pred_date, str):
                 pred_date = pd.to_datetime(pred_date)
-            
+            print(pred)
             record = {
                 'date': pred_date,
                 '5K': pred.get('time5K'),
@@ -541,6 +542,41 @@ def get_training_stress(df):
         
     ratio = acute_load / chronic_load
     return round(ratio, 2)
+    
+def get_efficiency_trend(query: str):
+    """
+    Calculates the Aerobic Efficiency Index (Speed/HR) trend.
+    Formula: (Meters per Second / Average Heart Rate) * 100
+    """
+    df = st.session_state.get("df_master")
+    if df is None or df.empty:
+        return "No historical data available to calculate trends."
+
+    # clean and Sort
+    df = df.sort_values('Date').copy()
+    
+    # calculate AEI (Efficiency Factor)
+    # averageSpeed is in m/s from the Garmin JSON
+    df['AEI'] = (df['averageSpeed'] / df['averageHR']) * 100
+    
+    # compare Recent (Last 7 days) vs Baseline (Previous 21 days)
+    recent_avg = df.tail(7)['AEI'].mean()
+    baseline_avg = df.iloc[:-7].tail(21)['AEI'].mean()
+    
+    improvement = ((recent_avg - baseline_avg) / baseline_avg) * 100
+    
+    # Format the response for the Agent
+    status = "improving" if improvement > 0 else "declining"
+    
+    summary = (
+        f"Aerobic Efficiency Analysis:\n"
+        f"- Current AEI (7-day avg): {recent_avg:.2f}\n"
+        f"- Baseline AEI (prior 21 days): {baseline_avg:.2f}\n"
+        f"- Trend: {abs(improvement):.1f}% {status}.\n"
+        "Interpretation: A rising AEI means the user is producing more speed per heartbeat."
+    )
+    
+    return summary
 
 def plot_activity_map(df):
     # Filter for rows that have GPS data (non-null latitude and longitude)
