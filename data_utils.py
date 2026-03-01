@@ -169,13 +169,98 @@ def summarize_n_days(df):
 # Plotting
 
 def plot_vo2max_over_time(df, color="#10B981"):
+    """
+    Plot VO2Max over time using Plotly with a smooth trend line.
+    """
+    import plotly.graph_objects as go
+    import pandas as pd
+    import streamlit as st
+    
+    # Ensure Date is datetime and sort
     df_plot = df.copy().dropna(subset=["VO2 Max"]).sort_values("Date")
-    fig, ax = plt.subplots(figsize=(14, 6))
-    ax.plot(df_plot["Date"], df_plot["VO2 Max"], color=color, linewidth=3, marker='o')
-    ax.set_title("VO₂ Max Trend")
-    ax.grid(True, alpha=0.3)
-    plt.tight_layout()
-    st.pyplot(fig, width='stretch')
+    
+    if df_plot.empty:
+        st.warning("No VO2 Max data available to plot.")
+        return
+    
+    # Create a figure
+    fig = go.Figure()
+    
+    # Add scatter points for actual VO2 Max values
+    fig.add_trace(go.Scatter(
+        x=df_plot["Date"],
+        y=df_plot["VO2 Max"],
+        mode='markers+lines',
+        name='VO₂ Max',
+        marker=dict(
+            color=color,
+            size=8,
+            line=dict(width=1, color='white')
+        ),
+        line=dict(
+            color=color,
+            width=2,
+            dash='dash'
+        ),
+        hovertemplate='Date: %{x|%Y-%m-%d}<br>VO₂ Max: %{y}<extra></extra>'
+    ))
+    
+    # Add a smooth trend line using rolling average
+    # Calculate rolling average with window size based on data length
+    window_size = min(7, len(df_plot))
+    if window_size > 1:
+        df_plot['VO2 Max_smooth'] = df_plot['VO2 Max'].rolling(
+            window=window_size, center=True, min_periods=1
+        ).mean()
+        
+        # Add smooth line
+        fig.add_trace(go.Scatter(
+            x=df_plot["Date"],
+            y=df_plot['VO2 Max_smooth'],
+            mode='lines',
+            name='Trend',
+            line=dict(
+                color=color,
+                width=4,
+                dash='solid'
+            ),
+            hovertemplate='Date: %{x|%Y-%m-%d}<br>Trend: %{y:.1f}<extra></extra>'
+        ))
+    
+    # Update layout
+    fig.update_layout(
+        title='VO₂ Max Trend',
+        xaxis_title='Date',
+        yaxis_title='VO₂ Max',
+        hovermode='x unified',
+        template='plotly_white',
+        showlegend=True,
+        legend=dict(
+            yanchor="top",
+            y=0.99,
+            xanchor="left",
+            x=0.01
+        ),
+        height=500,
+        plot_bgcolor='rgba(0,0,0,0)',
+        paper_bgcolor='rgba(0,0,0,0)'
+    )
+    
+    # Update axes
+    fig.update_xaxes(
+        tickformat='%b %d, %Y',
+        tickangle=45,
+        gridcolor='lightgray',
+        showgrid=True
+    )
+    fig.update_yaxes(
+        gridcolor='lightgray',
+        showgrid=True,
+        zeroline=False
+    )
+    
+    # Display in Streamlit
+    st.plotly_chart(fig, use_container_width=True)
 
 def plot_weekly_training_time(df, color="#6366F1"):
     import plotly.graph_objects as go
