@@ -229,17 +229,27 @@ def plot_vo2max_over_time(df, color="#10B981"):
     
     # Update layout
     fig.update_layout(
-        title='VO₂ Max Trend',
-        xaxis_title='Date',
-        yaxis_title='VO₂ Max',
+        title=dict(
+            text='VO₂ Max Trend',
+            font=dict(color='white', size=20)
+        ),
+        xaxis_title=dict(
+            text='Date',
+            font=dict(color='white')
+        ),
+        yaxis_title=dict(
+            text='VO₂ Max',
+            font=dict(color='white')
+        ),
         hovermode='x unified',
-        template='plotly_white',
+        template='plotly_dark',
         showlegend=True,
         legend=dict(
             yanchor="top",
             y=0.99,
             xanchor="left",
-            x=0.01
+            x=0.01,
+            font=dict(color='white')
         ),
         height=500,
         plot_bgcolor='rgba(0,0,0,0)',
@@ -250,13 +260,17 @@ def plot_vo2max_over_time(df, color="#10B981"):
     fig.update_xaxes(
         tickformat='%b %d, %Y',
         tickangle=45,
-        gridcolor='lightgray',
-        showgrid=True
+        gridcolor='rgba(255,255,255,0.1)',
+        showgrid=True,
+        tickfont=dict(color='white'),
+        title_font=dict(color='white')
     )
     fig.update_yaxes(
-        gridcolor='lightgray',
+        gridcolor='rgba(255,255,255,0.1)',
         showgrid=True,
-        zeroline=False
+        zeroline=False,
+        tickfont=dict(color='white'),
+        title_font=dict(color='white')
     )
     
     # Display in Streamlit
@@ -292,21 +306,34 @@ def plot_weekly_training_time(df, color="#6366F1"):
     
     # Update layout
     fig.update_layout(
-        title="Weekly Training Mileage",
-        xaxis_title="Week",
-        yaxis_title="Miles",
+        title=dict(
+            text="Weekly Training Mileage",
+            font=dict(color='white', size=20)
+        ),
+        xaxis_title=dict(
+            text="Week",
+            font=dict(color='white')
+        ),
+        yaxis_title=dict(
+            text="Miles",
+            font=dict(color='white')
+        ),
         hovermode="x unified",
         template="plotly_dark",
         plot_bgcolor="rgba(0,0,0,0)",
         paper_bgcolor="rgba(0,0,0,0)",
-        font=dict(color="#fafafa"),
+        font=dict(color="white"),
         xaxis=dict(
             showgrid=False,
-            tickangle=45
+            tickangle=45,
+            tickfont=dict(color='white'),
+            title_font=dict(color='white')
         ),
         yaxis=dict(
             showgrid=True,
-            gridcolor="rgba(255,255,255,0.1)"
+            gridcolor="rgba(255,255,255,0.1)",
+            tickfont=dict(color='white'),
+            title_font=dict(color='white')
         ),
         height=500
     )
@@ -607,21 +634,34 @@ def plot_race_predictions_trend(df_history):
         return
     
     fig.update_layout(
-        title="Race Prediction Trends Over Time",
-        xaxis_title="Date",
-        yaxis_title="Predicted Time (minutes)",
+        title=dict(
+            text="Race Prediction Trends Over Time",
+            font=dict(color='white', size=20)
+        ),
+        xaxis_title=dict(
+            text="Date",
+            font=dict(color='white')
+        ),
+        yaxis_title=dict(
+            text="Predicted Time (minutes)",
+            font=dict(color='white')
+        ),
         hovermode="x unified",
         template="plotly_dark",
         plot_bgcolor="rgba(0,0,0,0)",
         paper_bgcolor="rgba(0,0,0,0)",
-        font=dict(color="#fafafa"),
+        font=dict(color="white"),
         xaxis=dict(
             showgrid=False,
-            tickangle=45
+            tickangle=45,
+            tickfont=dict(color='white'),
+            title_font=dict(color='white')
         ),
         yaxis=dict(
             showgrid=True,
-            gridcolor="rgba(255,255,255,0.1)"
+            gridcolor="rgba(255,255,255,0.1)",
+            tickfont=dict(color='white'),
+            title_font=dict(color='white')
         ),
         height=500
     )
