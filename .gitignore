@@ -10,6 +10,7 @@ lc-env/
 venv/
 .env
 .env.* 
+cred.env
 
 # macOS
 .DS_Store
