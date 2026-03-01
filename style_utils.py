@@ -131,32 +131,40 @@ def apply_custom_style():
 
     /* Make sure form submit buttons are also styled - match regular buttons */
     div[data-testid="stForm"] button,
-    div[data-testid="stFormSubmitButton"] button {
+    div[data-testid="stFormSubmitButton"] button,
+    button[data-testid="baseButton-secondaryFormSubmit"] {
         background-color: transparent !important;
         color: #ffffff !important;
         border: 1px solid #0078ff !important;
-        border-radius: 8px;
-        padding: 0.5rem 1rem;
+        border-radius: 8px !important;
+        padding: 0.5rem 1rem !important;
         font-weight: 500 !important;
         box-shadow: none !important;
         outline: none !important;
+        min-height: unset !important;
+        height: auto !important;
     }
 
     div[data-testid="stForm"] button:hover,
-    div[data-testid="stFormSubmitButton"] button:hover {
+    div[data-testid="stFormSubmitButton"] button:hover,
+    button[data-testid="baseButton-secondaryFormSubmit"]:hover {
         background-color: #0078ff !important;
         color: #ffffff !important;
         border: 1px solid #0078ff !important;
     }
 
     /* Style for critique buttons specifically - make them transparent by default */
-    button[kind="secondary"], button[kind="primary"] {
+    button[kind="secondary"], 
+    button[kind="primary"],
+    button.st-emotion-cache-1j6n61z.edgvbvh3 {
         background-color: transparent !important;
         color: #ffffff !important;
         border: 1px solid #0078ff !important;
     }
 
-    button[kind="secondary"]:hover, button[kind="primary"]:hover {
+    button[kind="secondary"]:hover, 
+    button[kind="primary"]:hover,
+    button.st-emotion-cache-1j6n61z.edgvbvh3:hover {
         background-color: #0078ff !important;
         color: #ffffff !important;
         border: 1px solid #0078ff !important;
@@ -260,25 +268,63 @@ def apply_custom_style():
         background-color: #0056cc !important;
     }
 
-    /* Style for form submit buttons (like login) */
-    div[data-testid="stFormSubmitButton"] button span {
-    
-        background-color: #1a1c23 !important;
+    /* Style for form submit buttons (like login) - target the button directly */
+    div[data-testid="stFormSubmitButton"] button,
+    div[data-testid="stFormSubmitButton"] > button {
+        background-color: transparent !important;
         color: #ffffff !important;
         border: 1px solid #0078ff !important;
-        border-radius: 8px;
-        padding: 0.5rem 1rem;
+        border-radius: 8px !important;
+        padding: 0.5rem 1rem !important;
         font-weight: 500 !important;
         box-shadow: none !important;
         outline: none !important;
+        min-height: unset !important;
+        height: auto !important;
     }
     
-    div[data-testid="stFormSubmitButton"] button:hover {
+    div[data-testid="stFormSubmitButton"] button:hover,
+    div[data-testid="stFormSubmitButton"] > button:hover {
         background-color: #0078ff !important;
         color: #ffffff !important;
         border: 1px solid #0078ff !important;
     }
     
+    /* Target the login button specifically */
+    form[data-testid="stForm"] button[type="submit"],
+    form[data-testid="stForm"] button[kind="secondaryFormSubmit"] {
+        background-color: transparent !important;
+        color: #ffffff !important;
+        border: 1px solid #0078ff !important;
+        border-radius: 8px !important;
+        padding: 0.5rem 1rem !important;
+        font-weight: 500 !important;
+        box-shadow: none !important;
+        outline: none !important;
+    }
+    
+    form[data-testid="stForm"] button[type="submit"]:hover,
+    form[data-testid="stForm"] button[kind="secondaryFormSubmit"]:hover {
+        background-color: #0078ff !important;
+        color: #ffffff !important;
+        border: 1px solid #0078ff !important;
+    }
+    
+    /* Style for the dropdown element */
+    .st-emotion-cache-1lsfsc6.e12o48ov4 {
+        background-color: transparent !important;
+        color: #ffffff !important;
+        border: 1px solid #0078ff !important;
+        border-radius: 8px !important;
+    }
+    
+    .st-emotion-cache-1lsfsc6.e12o48ov4:hover {
+        background-color: #0078ff !important;
+        color: #ffffff !important;
+        border: 1px solid #0078ff !important;
+    }
+    
+    /* Ensure all form elements are styled consistently */
     [class="st-emotion-cache-128upt6 e1td4qo63"] {
         background-color: transparent;
     }
