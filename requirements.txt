@@ -16,8 +16,10 @@ folium
 streamlit_folium
 
 
+# Vector Store
+chromadb==0.5.22
+
 # Embeddings
-faiss-cpu==1.13.2
 gpt4all==2.8.2
 
 # Garmin API

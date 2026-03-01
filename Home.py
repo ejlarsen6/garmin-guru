@@ -59,8 +59,12 @@ def get_agent():
 
     # Vector Stores
     # Coaching store
-    if os.path.exists("docs/coaching-store"):
-        coaching_store = FAISS.load_local("docs/coaching-store", embeddings, allow_dangerous_deserialization=True)
+    coaching_store_path = "docs/chroma_coaching_store"
+    if os.path.exists(coaching_store_path):
+        coaching_store = Chroma(
+            persist_directory=coaching_store_path,
+            embedding_function=embeddings
+        )
         coaching_retriever = coaching_store.as_retriever()
     else:
         all_docs = []
@@ -70,14 +74,23 @@ def get_agent():
                 all_docs.extend(loader.load())
         
         coaching_chunks = splitter.split_documents(all_docs)
-        coaching_store = FAISS.from_documents(coaching_chunks, embeddings)
+        coaching_store = Chroma.from_documents(
+            documents=coaching_chunks,
+            embedding=embeddings,
+            persist_directory=coaching_store_path
+        )
+        coaching_store.persist()
         coaching_retriever = coaching_store.as_retriever()
-        coaching_store.save_local("docs/coaching-store")
     
     # Training plans store
     training_plans_path = "docs/training_plans"
-    if os.path.exists("docs/plan-store"):
-        plan_store = FAISS.load_local("docs/plan-store", embeddings, allow_dangerous_deserialization=True)
+    plan_store_path = "docs/chroma_plan_store"
+    
+    if os.path.exists(plan_store_path):
+        plan_store = Chroma(
+            persist_directory=plan_store_path,
+            embedding_function=embeddings
+        )
         plan_retriever = plan_store.as_retriever()
     else:
         plan_docs = []
@@ -93,14 +106,22 @@ def get_agent():
         
         if plan_docs:
             plan_chunks = splitter.split_documents(plan_docs)
-            plan_store = FAISS.from_documents(plan_chunks, embeddings)
+            plan_store = Chroma.from_documents(
+                documents=plan_chunks,
+                embedding=embeddings,
+                persist_directory=plan_store_path
+            )
+            plan_store.persist()
             plan_retriever = plan_store.as_retriever()
-            plan_store.save_local("docs/plan-store")
         else:
             # Create an empty vector store if no documents
-            plan_store = FAISS.from_documents([], embeddings)
+            plan_store = Chroma.from_documents(
+                documents=[],
+                embedding=embeddings,
+                persist_directory=plan_store_path
+            )
+            plan_store.persist()
             plan_retriever = plan_store.as_retriever()
-            plan_store.save_local("docs/plan-store")
 
     llm = ChatGoogleGenerativeAI(model="models/gemini-2.5-flash", google_api_key = api_key, temperature=0.15)
 
