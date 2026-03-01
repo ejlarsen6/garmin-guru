@@ -376,9 +376,21 @@ def get_race_predictions(email, password, startdate=None, enddate=None):
         elif isinstance(predictions, list):
             if len(predictions) == 0:
                 return None
-            # Return the most recent prediction (last in the list)
-            # Assuming the list is sorted chronologically
-            return predictions[-1]
+            # Find the most recent prediction that is a dictionary
+            # Traverse in reverse to get the most recent first
+            for pred in reversed(predictions):
+                if isinstance(pred, dict):
+                    return pred
+            # If no dictionary found, check if the list contains lists
+            # Flatten if necessary and try to find a dictionary
+            for pred in reversed(predictions):
+                if isinstance(pred, list) and len(pred) > 0:
+                    # Check each element in the nested list
+                    for item in pred:
+                        if isinstance(item, dict):
+                            return item
+            # If we still haven't found a dictionary, return None
+            return None
         else:
             # If it's a dictionary, return it directly
             return predictions
