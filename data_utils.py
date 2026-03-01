@@ -135,16 +135,56 @@ def plot_vo2max_over_time(df, color="#10B981"):
     st.pyplot(fig, width='stretch')
 
 def plot_weekly_training_time(df, color="#6366F1"):
-    df_plot = df.copy()
-    df_plot["week"] = df_plot["Date"].dt.to_period("W").apply(lambda r: r.start_time)
-    wk = df_plot.groupby("week")["Duration (min)"].sum().reset_index()
+    import plotly.graph_objects as go
+    import plotly.express as px
+    from plotly.subplots import make_subplots
     
-    fig, ax = plt.subplots(figsize=(14, 6))
-    ax.bar(wk["week"], wk["Duration (min)"], color=color, width=5)
-    ax.set_title("Weekly Training Volume (Minutes)")
-    plt.xticks(rotation=45)
-    plt.tight_layout()
-    st.pyplot(fig, width='stretch')
+    df_plot = df.copy()
+    # Group by week
+    df_plot["week"] = df_plot["Date"].dt.to_period("W").apply(lambda r: r.start_time)
+    # Calculate weekly mileage (sum of Distance (mi))
+    wk = df_plot.groupby("week").agg(
+        total_miles=("Distance (mi)", "sum"),
+        total_minutes=("Duration (min)", "sum")
+    ).reset_index()
+    
+    # Create interactive bar chart with Plotly
+    fig = go.Figure()
+    
+    # Add mileage bars
+    fig.add_trace(go.Bar(
+        x=wk["week"],
+        y=wk["total_miles"],
+        name="Weekly Mileage (mi)",
+        marker_color=color,
+        hovertemplate="<b>Week of %{x|%Y-%m-%d}</b><br>" +
+                      "Mileage: %{y:.1f} mi<br>" +
+                      "<extra></extra>"
+    ))
+    
+    # Update layout
+    fig.update_layout(
+        title="Weekly Training Mileage",
+        xaxis_title="Week",
+        yaxis_title="Miles",
+        hovermode="x unified",
+        template="plotly_dark",
+        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="rgba(0,0,0,0)",
+        font=dict(color="#fafafa"),
+        xaxis=dict(
+            showgrid=False,
+            tickangle=45
+        ),
+        yaxis=dict(
+            showgrid=True,
+            gridcolor="rgba(255,255,255,0.1)"
+        ),
+        height=500
+    )
+    
+    # Display in Streamlit
+    st.plotly_chart(fig, use_container_width=True)
 
 def get_pbs(df):
   df["Date"] = pd.to_datetime(df["Date"])
