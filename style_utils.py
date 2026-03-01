@@ -118,21 +118,32 @@ def apply_custom_style():
     }
     /* Dark Chat Input Styling */
     [data-testid="stChatInput"] {
-        background-color: #1a1c23 !important; /* Rich black/dark charcoal */
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        background-color: #2d3748 !important; /* Medium gray that's distinguishable against black */
+        border: 1px solid rgba(255, 255, 255, 0.2) !important;
         border-radius: 12px;
     }
 
-    /* Target the text area inside to ensure no white background bleeds through */
+    /* Target the text area inside to ensure proper contrast */
     [data-testid="stChatInput"] textarea {
-        background-color: transparent !important;
+        background-color: #2d3748 !important;
         color: #ffffff !important;
+    }
+
+    /* Placeholder text should also be visible */
+    [data-testid="stChatInput"] textarea::placeholder {
+        color: #a0aec0 !important;
     }
 
     /* Add a slight glow when the user clicks into the box */
     [data-testid="stChatInput"]:focus-within {
         border: 1px solid #0078ff !important;
-        box-shadow: 0 0 10px rgba(0, 120, 255, 0.2);
+        box-shadow: 0 0 10px rgba(0, 120, 255, 0.4);
+        background-color: #374151 !important;
+    }
+
+    /* Ensure the text area maintains gray background on focus */
+    [data-testid="stChatInput"]:focus-within textarea {
+        background-color: #374151 !important;
     }
 
     [class="st-emotion-cache-128upt6 e1td4qo63"] {
