@@ -49,29 +49,71 @@ def get_workout_dataframe_n_days(n_days, email, password):
 
         data_list = []
         for act in activities:
-            if "running" not in act["activityType"]["typeKey"]:
-                print(act["activityType"]["typeKey"])
+            # Check if it's a running activity (including treadmill)
+            activity_type = act.get("activityType", {}).get("typeKey", "")
+            if "running" not in activity_type:
                 continue
             
+            # Check if it's a manual activity
+            is_manual = act.get('manualActivity', False)
+            
+            # Distance and duration
             dist_mi = act.get('distance', 0) / 1609.34
             dur_min = act.get('duration', 0) / 60
+            
+            # Calculate pace if distance > 0 and not manual (manual may have inaccurate pace)
+            if dist_mi > 0 and not is_manual:
+                pace_decimal = round(dur_min / dist_mi, 2)
+            else:
+                pace_decimal = 0
+            
+            # Heart rate data may not be present for manual activities
+            avg_hr = act.get('averageHR')
+            if is_manual:
+                avg_hr = None
+            
+            # VO2 Max may not be present for treadmill or manual activities
+            vo2_max = act.get('vO2MaxValue')
+            
+            # Elevation gain - may be None for treadmill
+            elev_gain = act.get('elevationGain')
+            if elev_gain is None:
+                elev_gain_ft = 0.0
+            else:
+                elev_gain_ft = round(elev_gain * 3.28084, 1)
+            
+            # GPS data may be missing for treadmill runs
+            latitude = act.get('startLatitude')
+            longitude = act.get('startLongitude')
+            
+            # Heart rate zones - may be None for manual activities
+            hr_zones = {}
+            for i in range(1, 6):
+                zone_key = f'hrTimeInZone_{i}'
+                zone_time = act.get(zone_key)
+                if zone_time is None or is_manual:
+                    hr_zones[f'Z{i}_Min'] = 0.0
+                else:
+                    hr_zones[f'Z{i}_Min'] = round(zone_time / 60, 2)
             
             data_list.append({
                 "Activity Name": act.get('activityName'),
                 "Date": pd.to_datetime(act.get('startTimeLocal')),
                 "Distance (mi)": round(dist_mi, 2),
                 "Duration (min)": round(dur_min, 2),
-                "Pace_Decimal": round(dur_min / dist_mi, 2) if dist_mi > 0 else 0,
-                "Avg HR": act.get('averageHR'),
-                "VO2 Max": act.get('vO2MaxValue'),
-                "Elev Gain (ft)": round(act.get('elevationGain', 0) * 3.28084, 1),
-                "Latitude": act.get('startLatitude'),
-                "Longitude": act.get('startLongitude'),
-                "Z1_Min": round(act.get('hrTimeInZone_1', 0) / 60, 2),
-                "Z2_Min": round(act.get('hrTimeInZone_2', 0) / 60, 2),
-                "Z3_Min": round(act.get('hrTimeInZone_3', 0) / 60, 2),
-                "Z4_Min": round(act.get('hrTimeInZone_4', 0) / 60, 2),
-                "Z5_Min": round(act.get('hrTimeInZone_5', 0) / 60, 2)
+                "Pace_Decimal": pace_decimal,
+                "Avg HR": avg_hr,
+                "VO2 Max": vo2_max,
+                "Elev Gain (ft)": elev_gain_ft,
+                "Latitude": latitude,
+                "Longitude": longitude,
+                "Z1_Min": hr_zones.get('Z1_Min', 0.0),
+                "Z2_Min": hr_zones.get('Z2_Min', 0.0),
+                "Z3_Min": hr_zones.get('Z3_Min', 0.0),
+                "Z4_Min": hr_zones.get('Z4_Min', 0.0),
+                "Z5_Min": hr_zones.get('Z5_Min', 0.0),
+                "Is Manual": is_manual,
+                "Activity Type": activity_type
             })
         return pd.DataFrame(data_list)
     except Exception as e:
@@ -423,18 +465,19 @@ def get_training_stress(df):
     return round(ratio, 2)
 
 def plot_activity_map(df):
-    # Filter for rows that have GPS data
+    # Filter for rows that have GPS data (non-null latitude and longitude)
     if "Latitude" not in df.columns or "Longitude" not in df.columns:
         st.warning("GPS data not found in the current dataset.")
         return None
 
-    coords = df[["Activity Name", "Latitude", "Longitude", "Distance (mi)", "Date"]].dropna()
+    # Filter out rows where either latitude or longitude is None
+    coords = df[["Activity Name", "Latitude", "Longitude", "Distance (mi)", "Date"]].dropna(subset=["Latitude", "Longitude"])
     
     if coords.empty:
-        st.info("No coordinate data available to map.")
+        st.info("No GPS coordinate data available to map. This may be due to treadmill or indoor activities.")
         return None
 
-    # Center map on the most recent activity or mean location
+    # Center map on the mean location of available coordinates
     m = folium.Map(
         location=[coords["Latitude"].mean(), coords["Longitude"].mean()],
         zoom_start=12,
@@ -444,7 +487,6 @@ def plot_activity_map(df):
     # Add markers for activity start points
     marker_group = folium.FeatureGroup(name="Individual Runs").add_to(m)
     for _, row in coords.iterrows():
-
         popup_info = f"""
             <strong>{row['Activity Name']}</strong><br>
             Distance: {row['Distance (mi)']} mi<br>
@@ -459,8 +501,10 @@ def plot_activity_map(df):
             popup=folium.Popup(popup_info, max_width=250)
         ).add_to(marker_group)
     
+    # Prepare heatmap data
     heat_data = coords[["Latitude", "Longitude"]].values.tolist()
-    HeatMap(heat_data, name="Heatmap (Density)", min_opacity=0.4, radius=16).add_to(m)
+    if heat_data:
+        HeatMap(heat_data, name="Heatmap (Density)", min_opacity=0.4, radius=16).add_to(m)
 
     folium.LayerControl().add_to(m)
     
