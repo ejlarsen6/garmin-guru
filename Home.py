@@ -29,6 +29,7 @@ from data_utils import get_cached_workout_data, summarize_n_days, get_training_s
 from calendar_manager import CalendarManager
 from style_utils import apply_custom_style
 from streamlit_calendar import calendar
+from typing import Optional
 
 GARMIN_CACHE = None
 load_dotenv("cred.env")
