@@ -34,6 +34,25 @@ def get_garmin_client(email, password):
             
     return client
 
+def update_calendar(action: str, date: str, workout_type: str, details: str = ""):
+    """
+    Actions: 'add', 'remove', 'edit'. 
+    Example: update_calendar('add', '2026-03-05', 'Tempo Run', '4 miles at 7:15 pace')
+    """
+    events = st.session_state.get("calendar_events", [])
+    
+    if action == "add":
+        new_event = {
+            "title": workout_type,
+            "start": date,
+            "description": details,
+            "backgroundColor": "#FF4B4B" if "Hard" in details else "#3D9DF3"
+        }
+        events.append(new_event)
+    
+    st.session_state["calendar_events"] = events
+    return f"Successfully {action}ed {workout_type} on {date}."
+
 # data fetching
 def get_workout_dataframe_n_days(n_days, email, password):
     try:
@@ -703,7 +722,7 @@ def get_efficiency_trend(query: str):
     
     # calculate AEI (Efficiency Factor)
     # averageSpeed is in m/s from the Garmin JSON
-    df['AEI'] = (df['averageSpeed'] / df['averageHR']) * 100
+    df['AEI'] = (df['Pace_Decimal'] / df['Avg HR']) * 100
     
     # compare Recent (Last 7 days) vs Baseline (Previous 21 days)
     recent_avg = df.tail(7)['AEI'].mean()

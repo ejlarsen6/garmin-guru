@@ -26,8 +26,10 @@ from datetime import datetime, date, timedelta
 from langchain_core.messages import SystemMessage
 from langchain_experimental.agents.agent_toolkits import create_pandas_dataframe_agent
 import matplotlib.pyplot as plt
-from data_utils import get_cached_workout_data, summarize_n_days, get_training_stress, get_workout_dataframe_n_days, check_fitness_trend, get_efficiency_trend
+from data_utils import get_cached_workout_data, summarize_n_days, get_training_stress, get_workout_dataframe_n_days, check_fitness_trend, get_efficiency_trend, update_calendar
 from style_utils import apply_custom_style
+from streamlit_calendar import calendar
+
 GARMIN_CACHE = None
 load_dotenv("cred.env")
 
@@ -308,6 +310,20 @@ if __name__ == "__main__":
 
     
         all_time_stats = summarize_n_days(st.session_state.df_master)
+
+    calendar_options = {
+    "editable": True,
+    "selectable": True,
+    "headerToolbar": {
+        "left": "today prev,next",
+        "center": "title",
+        "right": "dayGridMonth,timeGridWeek",
+    },
+    "initialView": "dayGridMonth",
+    }
+    
+    # This displays the calendar and returns any user edits (drags/clicks)
+    state = calendar(events=st.session_state.get("calendar_events", []), options=calendar_options)
 
     with st.sidebar:
         st.header("📊 Training Summary")
