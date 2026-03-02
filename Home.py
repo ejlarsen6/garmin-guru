@@ -44,6 +44,9 @@ if "memory" not in st.session_state:
         chat_memory=msgs, 
         return_messages=True
     )
+# Initialize calendar update flag
+if "calendar_updated" not in st.session_state:
+    st.session_state.calendar_updated = False
 
 # Tool Setup
 
@@ -168,7 +171,40 @@ def get_agent():
         if date is None or workout_type is None:
             return f"Error: 'date' and 'workout_type' are required for '{action}' action."
         
-        return update_calendar(action, date, workout_type, details, user_id)
+        # Parse the date and adjust if it's in the past
+        try:
+            from datetime import datetime
+            # Parse the date string
+            parsed_date = datetime.strptime(date, "%Y-%m-%d").date()
+            today = datetime.now().date()
+            
+            # If the date is in the past, adjust it to be in the future
+            # For example, if it's from 2025, move it to the same day of week in the current year
+            if parsed_date.year < today.year:
+                # Calculate days difference to move to current year
+                # Keep the same month and day, but in current year
+                # If that date is still in the past, move to next occurrence
+                adjusted_date = parsed_date.replace(year=today.year)
+                if adjusted_date < today:
+                    # Move to next year
+                    adjusted_date = adjusted_date.replace(year=today.year + 1)
+                date = adjusted_date.strftime("%Y-%m-%d")
+                # Update details to note the adjustment
+                details = f"(Originally scheduled for {parsed_date}) " + details
+            elif parsed_date < today:
+                # If date is in current year but past, move to next week
+                from datetime import timedelta
+                adjusted_date = parsed_date + timedelta(days=7)
+                date = adjusted_date.strftime("%Y-%m-%d")
+                details = f"(Originally scheduled for {parsed_date}) " + details
+        except ValueError:
+            # If date parsing fails, keep original date
+            pass
+        
+        result = update_calendar(action, date, workout_type, details, user_id)
+        # Set a flag to indicate calendar was updated
+        st.session_state.calendar_updated = True
+        return result
 
     def plan_retrieval(q):
         docs = plan_retriever.invoke(q)
@@ -224,10 +260,21 @@ def get_agent():
         search_tool
     ]
 
+    # Get current date for the prompt
+    from datetime import datetime
+    current_date = datetime.now().strftime("%Y-%m-%d")
+    current_year = datetime.now().year
+    
     # Prompt Definition
-    Custom_Coach_Prompt = """
+    Custom_Coach_Prompt = f"""
                         You are 'Garmin Guru', an elite analytical running coach. You have access to the user's 
                         historical Garmin data and a library of professional coaching principles.
+                        
+                        ### CURRENT DATE CONTEXT:
+                        - Today is {current_date} (Year: {current_year})
+                        - When scheduling events, always use dates in {current_year} or later.
+                        - Never schedule events in past years (like 2025).
+                        - If you find training plans with dates from previous years, adjust them to current or future dates.
                         
                         ### CRITICAL RULE: YOU MUST USE TOOLS FOR EVERY RESPONSE
                         - NEVER generate a response without using at least one tool.
@@ -263,20 +310,21 @@ def get_agent():
                         ### CALENDAR TOOL SPECIFICS:
                         - The Calendar_Manager tool requires specific parameters:
                           1. action: 'add', 'remove', 'edit', or 'clear'
-                          2. date: Must be in YYYY-MM-DD format (e.g., '2026-03-05')
+                          2. date: Must be in YYYY-MM-DD format (e.g., '{current_date}')
                           3. workout_type: Type of workout (e.g., 'Tempo Run', 'Long Run', 'Recovery Run')
                           4. details: Additional information like distance, pace, notes (optional)
-                        - When adding events, always use future dates. Don't add events to past dates.
+                        - When adding events, always use future dates starting from today ({current_date}).
+                        - Don't add events to past dates. If you find dates from previous years in training plans, adjust them to current or future dates.
                         - When creating a training schedule, use the calendar tool to add multiple events across different dates.
                         - If the user asks to "schedule" or "plan" workouts, use the calendar tool to add them.
                         - For removing events, you need to know the exact date and workout_type.
                         
                         ### SPECIFIC SCENARIOS:
-                        1. **User asks for a sample schedule**: Use 'training_plans' tool first. If it returns "NO_TRAINING_PLANS_FOUND:", use 'search_tool'. Then use 'Calendar_Manager' to add the workouts to specific dates.
-                        2. **User says "That schedule isn't enough miles"**: Use 'search_tool' to find training plans with higher mileage, then use 'Calendar_Manager' to update the schedule.
+                        1. **User asks for a sample schedule**: Use 'training_plans' tool first. If it returns "NO_TRAINING_PLANS_FOUND:", use 'search_tool'. Then use 'Calendar_Manager' to add the workouts to specific dates in {current_year} or later.
+                        2. **User says "That schedule isn't enough miles"**: Use 'search_tool' to find training plans with higher mileage, then use 'Calendar_Manager' to update the schedule with dates in {current_year} or later.
                         3. **User asks about their specific data**: Use 'Workout_Data_Analyzer'.
                         4. **User asks about training principles**: Use 'coaching_expert'.
-                        5. **User wants to schedule workouts**: Use 'Calendar_Manager' to add events to specific dates.
+                        5. **User wants to schedule workouts**: Use 'Calendar_Manager' to add events to specific dates in {current_year} or later.
                         6. **User wants to remove or edit scheduled workouts**: Use 'Calendar_Manager' with appropriate action.
                         
                         ### IMPORTANT:
@@ -284,7 +332,7 @@ def get_agent():
                         - For queries about training plans, schedules, or workout routines, ALWAYS use the 'training_plans' tool first.
                         - If the 'training_plans' tool returns "NO_TRAINING_PLANS_FOUND:" or similar, IMMEDIATELY use the 'search_tool' to find current information online.
                         - When the user provides feedback about a schedule (e.g., "That schedule isn't enough miles"), use the 'search_tool' to find adjusted training plans that match their requirements.
-                        - When creating or modifying training schedules, use the 'Calendar_Manager' tool to actually schedule the workouts on specific dates.
+                        - When creating or modifying training schedules, use the 'Calendar_Manager' tool to actually schedule the workouts on specific dates in {current_year} or later.
                         - Always provide a 'Coach's Verdict' at the end of an analysis: [Optimizing, Overreaching, or Detraining]. A verdict is only necessary if you are asked to analyze activities.
 
                         There's no need to summarize all basic workout details, as the user is able to see those. Just provide insight into future action, and the way the user is trending and performing. 
@@ -554,6 +602,13 @@ if __name__ == "__main__":
                             
                             # Write result to the container
                             response_container.write(response["output"])
+                            
+                            # Check if calendar was updated and trigger rerun
+                            if st.session_state.get("calendar_updated", False):
+                                # Clear the flag
+                                st.session_state.calendar_updated = False
+                                # Add a small delay and rerun
+                                st.rerun()
     
                         else:
                             st.error("Coach agent is not initialized. Try refreshing the page.")
