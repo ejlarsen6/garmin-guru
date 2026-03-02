@@ -203,7 +203,7 @@ def get_agent():
             func=calendar_tool,
             description="""Useful for managing calendar events. Use when user wants to add, remove, or edit workout events in their calendar.
             The action must be one of: 'add', 'remove', 'edit', 'clear'.
-            Date must be in YYYY-MM-DD format.
+            date must be in YYYY-MM-DD format.
             workout_type is the type of workout (e.g., 'Tempo Run', 'Long Run', 'Recovery Run').
             details can include additional information like distance, pace, etc.
             Examples:
