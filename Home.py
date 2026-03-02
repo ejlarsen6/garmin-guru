@@ -6,7 +6,7 @@ os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
 import pandas as pd
 from dotenv import load_dotenv
 from langchain.agents import AgentExecutor, create_tool_calling_agent
-from langchain_core.tools import Tool
+from langchain_core.tools import Tool, StructuredTool
 from langchain.chains import RetrievalQA, LLMChain
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_community.tools import StructuredTool
@@ -197,7 +197,7 @@ def get_agent():
             func=get_efficiency_trend,
             description="Useful for analyzing cardiovascular fitness improvement by comparing speed to heart rate over time. Use when user asks about aerobic efficiency or cardiovascular progress."
         ),
-        Tool(
+        StructuredTool.from_function(
             name="Calendar_Manager",
             func=calendar_tool_wrapper,
             description="""Useful for managing calendar events. Use when user wants to add, remove, or edit workout events in their calendar.
