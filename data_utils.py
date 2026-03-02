@@ -34,24 +34,26 @@ def get_garmin_client(email, password):
             
     return client
 
-def update_calendar(action: str, date: str, workout_type: str, details: str = ""):
+from calendar_manager import update_calendar as update_calendar_json, get_calendar_events
+
+def update_calendar(action: str, date: str, workout_type: str, details: str = "", user_id: str = "default"):
     """
-    Actions: 'add', 'remove', 'edit'. 
+    Update calendar events with JSON persistence.
+    
+    Actions: 'add', 'remove', 'edit', 'clear'. 
     Example: update_calendar('add', '2026-03-05', 'Tempo Run', '4 miles at 7:15 pace')
+    
+    Args:
+        action: Action to perform
+        date: Date in YYYY-MM-DD format
+        workout_type: Type of workout
+        details: Additional details
+        user_id: User identifier for persistence (defaults to 'default')
+    
+    Returns:
+        Status message
     """
-    events = st.session_state.get("calendar_events", [])
-    
-    if action == "add":
-        new_event = {
-            "title": workout_type,
-            "start": date,
-            "description": details,
-            "backgroundColor": "#FF4B4B" if "Hard" in details else "#3D9DF3"
-        }
-        events.append(new_event)
-    
-    st.session_state["calendar_events"] = events
-    return f"Successfully {action}ed {workout_type} on {date}."
+    return update_calendar_json(action, date, workout_type, details, user_id)
 
 # data fetching
 def get_workout_dataframe_n_days(n_days, email, password):

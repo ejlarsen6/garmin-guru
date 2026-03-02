@@ -26,7 +26,8 @@ from datetime import datetime, date, timedelta
 from langchain_core.messages import SystemMessage
 from langchain_experimental.agents.agent_toolkits import create_pandas_dataframe_agent
 import matplotlib.pyplot as plt
-from data_utils import get_cached_workout_data, summarize_n_days, get_training_stress, get_workout_dataframe_n_days, check_fitness_trend, get_efficiency_trend, update_calendar
+from data_utils import get_cached_workout_data, summarize_n_days, get_training_stress, get_workout_dataframe_n_days, check_fitness_trend, get_efficiency_trend, update_calendar, get_calendar_events
+from calendar_manager import CalendarManager
 from style_utils import apply_custom_style
 from streamlit_calendar import calendar
 
@@ -143,6 +144,23 @@ def get_agent():
             return response["output"]
         except Exception as e:
             return f"Error analyzing data: {str(e)}"
+    
+    def calendar_tool(action: str, date: str, workout_type: str, details: str = ""):
+        """
+        Tool for managing calendar events with JSON persistence.
+        
+        Args:
+            action: 'add', 'remove', 'edit', 'clear'
+            date: Date in YYYY-MM-DD format
+            workout_type: Type of workout
+            details: Additional details
+        
+        Returns:
+            Status message
+        """
+        # Use the user's email as user_id for persistence
+        user_id = st.session_state.get("garmin_email", "default")
+        return update_calendar(action, date, workout_type, details, user_id)
 
     def plan_retrieval(q):
         docs = plan_retriever.invoke(q)
@@ -179,6 +197,19 @@ def get_agent():
             name="Efficiency_Trend_Analyzer",
             func=get_efficiency_trend,
             description="Useful for analyzing cardiovascular fitness improvement by comparing speed to heart rate over time. Use when user asks about aerobic efficiency or cardiovascular progress."
+        ),
+        Tool(
+            name="Calendar_Manager",
+            func=calendar_tool,
+            description="""Useful for managing calendar events. Use when user wants to add, remove, or edit workout events in their calendar.
+            The action must be one of: 'add', 'remove', 'edit', 'clear'.
+            Date must be in YYYY-MM-DD format.
+            workout_type is the type of workout (e.g., 'Tempo Run', 'Long Run', 'Recovery Run').
+            details can include additional information like distance, pace, etc.
+            Examples:
+            - To add a tempo run: action='add', date='2026-03-05', workout_type='Tempo Run', details='4 miles at 7:15 pace'
+            - To remove an event: action='remove', date='2026-03-05', workout_type='Tempo Run'
+            """
         ),
         search_tool
     ]
@@ -311,6 +342,11 @@ if __name__ == "__main__":
     
         all_time_stats = summarize_n_days(st.session_state.df_master)
 
+    # Load calendar events from JSON using the user's email as ID
+    user_id = st.session_state.get("garmin_email", "default")
+    calendar_manager = CalendarManager(user_id)
+    calendar_events = calendar_manager.get_events()
+    
     calendar_options = {
     "editable": True,
     "selectable": True,
@@ -323,7 +359,17 @@ if __name__ == "__main__":
     }
     
     # This displays the calendar and returns any user edits (drags/clicks)
-    state = calendar(events=st.session_state.get("calendar_events", []), options=calendar_options)
+    state = calendar(events=calendar_events, options=calendar_options)
+    
+    # Handle calendar interactions
+    if state and "eventClick" in state:
+        clicked_event = state["eventClick"]["event"]
+        st.write(f"Event clicked: {clicked_event}")
+        
+    if state and "dateClick" in state:
+        clicked_date = state["dateClick"]["dateStr"]
+        st.write(f"Date clicked: {clicked_date}")
+        # You could add a form here to add an event on the clicked date
 
     with st.sidebar:
         st.header("📊 Training Summary")
