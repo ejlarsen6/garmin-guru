@@ -3,6 +3,7 @@ import os
 from datetime import datetime
 from typing import List, Dict, Optional
 import streamlit as st
+from pydantic import BaseModel, Field
 
 class CalendarManager:
     """Manages calendar events with JSON persistence."""
@@ -79,6 +80,26 @@ class CalendarManager:
         """Clear all events."""
         self.events = []
         self._save_events()
+
+class CalendarInput(BaseModel):
+    """Input schema for calendar operations."""
+    action: str = Field(
+        description="Action to perform: 'add', 'remove', 'edit', or 'clear'"
+    )
+    date: str = Field(
+        description="Date in YYYY-MM-DD format. Required for 'add', 'remove', and 'edit' actions."
+    )
+    workout_type: str = Field(
+        description="Type of workout (e.g., 'Tempo Run', 'Long Run', 'Recovery Run'). Required for 'add', 'remove', and 'edit' actions."
+    )
+    details: Optional[str] = Field(
+        default="",
+        description="Additional details like distance, pace, notes. Optional for 'add' and 'edit' actions."
+    )
+    user_id: Optional[str] = Field(
+        default="default",
+        description="User identifier for persistence. Defaults to 'default'."
+    )
 
 def update_calendar(action: str, date: str, workout_type: str, details: str = "", user_id: str = "default") -> str:
     """

@@ -59,6 +59,9 @@ def get_agent():
 
     # Embeddings
     embeddings = GPT4AllEmbeddings()
+        
+    # Import CalendarInput here to avoid circular imports
+    from calendar_manager import CalendarInput
 
     # Vector Stores
     # Coaching store
@@ -145,21 +148,17 @@ def get_agent():
         except Exception as e:
             return f"Error analyzing data: {str(e)}"
     
-    def calendar_tool(action: str, date: str, workout_type: str, details: str = ""):
+    def calendar_tool_wrapper(calendar_input: CalendarInput) -> str:
         """
-        Tool for managing calendar events with JSON persistence.
-        
-        Args:
-            action: 'add', 'remove', 'edit', 'clear'
-            date: Date in YYYY-MM-DD format
-            workout_type: Type of workout
-            details: Additional details
-        
-        Returns:
-            Status message
+        Wrapper for calendar tool that accepts a CalendarInput object.
         """
-        # Use the user's email as user_id for persistence
-        user_id = st.session_state.get("garmin_email", "default")
+        # Extract parameters from the structured input
+        action = calendar_input.action
+        date = calendar_input.date
+        workout_type = calendar_input.workout_type
+        details = calendar_input.details or ""
+        user_id = calendar_input.user_id or st.session_state.get("garmin_email", "default")
+        
         return update_calendar(action, date, workout_type, details, user_id)
 
     def plan_retrieval(q):
@@ -200,16 +199,18 @@ def get_agent():
         ),
         Tool(
             name="Calendar_Manager",
-            func=calendar_tool,
+            func=calendar_tool_wrapper,
             description="""Useful for managing calendar events. Use when user wants to add, remove, or edit workout events in their calendar.
             The action must be one of: 'add', 'remove', 'edit', 'clear'.
             date must be in YYYY-MM-DD format.
             workout_type is the type of workout (e.g., 'Tempo Run', 'Long Run', 'Recovery Run').
-            details can include additional information like distance, pace, etc.
+            details can include additional information like distance, pace, notes (optional).
+            user_id is optional and defaults to the current user's email.
             Examples:
             - To add a tempo run: action='add', date='2026-03-05', workout_type='Tempo Run', details='4 miles at 7:15 pace'
             - To remove an event: action='remove', date='2026-03-05', workout_type='Tempo Run'
-            """
+            """,
+            args_schema=CalendarInput
         ),
         search_tool
     ]
