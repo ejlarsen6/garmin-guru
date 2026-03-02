@@ -9,7 +9,6 @@ from langchain.agents import AgentExecutor, create_tool_calling_agent
 from langchain_core.tools import Tool, StructuredTool
 from langchain.chains import RetrievalQA, LLMChain
 from langchain_community.document_loaders import PyPDFLoader
-from langchain_community.tools import StructuredTool
 from langchain_community.embeddings import GPT4AllEmbeddings
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.prompts import PromptTemplate
