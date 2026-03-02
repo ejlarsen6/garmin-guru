@@ -147,16 +147,25 @@ def get_agent():
         except Exception as e:
             return f"Error analyzing data: {str(e)}"
     
-    def calendar_tool_wrapper(calendar_input: CalendarInput) -> str:
+    def calendar_tool_wrapper(action: str, date: Optional[str] = None, workout_type: Optional[str] = None, 
+                              details: str = "", user_id: str = "default") -> str:
         """
-        Wrapper for calendar tool that accepts a CalendarInput object.
+        Wrapper for calendar tool that accepts keyword arguments matching CalendarInput.
+        This signature is required for StructuredTool.from_function to work correctly.
         """
-        # Extract parameters from the structured input
-        action = calendar_input.action
-        date = calendar_input.date
-        workout_type = calendar_input.workout_type
-        details = calendar_input.details or ""
-        user_id = calendar_input.user_id or st.session_state.get("garmin_email", "default")
+        # If user_id is the default value, use the session state email
+        if user_id == "default":
+            user_id = st.session_state.get("garmin_email", "default")
+        
+        # Handle 'clear' action which doesn't require date and workout_type
+        if action == "clear":
+            # For clear, we can pass empty strings for date and workout_type
+            # The update_calendar function should handle this
+            return update_calendar(action, "", "", details, user_id)
+        
+        # For other actions, ensure date and workout_type are provided
+        if date is None or workout_type is None:
+            return f"Error: 'date' and 'workout_type' are required for '{action}' action."
         
         return update_calendar(action, date, workout_type, details, user_id)
 

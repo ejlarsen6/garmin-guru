@@ -86,10 +86,12 @@ class CalendarInput(BaseModel):
     action: str = Field(
         description="Action to perform: 'add', 'remove', 'edit', or 'clear'"
     )
-    date: str = Field(
+    date: Optional[str] = Field(
+        default=None,
         description="Date in YYYY-MM-DD format. Required for 'add', 'remove', and 'edit' actions."
     )
-    workout_type: str = Field(
+    workout_type: Optional[str] = Field(
+        default=None,
         description="Type of workout (e.g., 'Tempo Run', 'Long Run', 'Recovery Run'). Required for 'add', 'remove', and 'edit' actions."
     )
     details: Optional[str] = Field(
@@ -107,8 +109,8 @@ def update_calendar(action: str, date: str, workout_type: str, details: str = ""
     
     Args:
         action: 'add', 'remove', 'edit', 'clear'
-        date: Date string in YYYY-MM-DD format
-        workout_type: Type of workout
+        date: Date string in YYYY-MM-DD format (can be empty for 'clear' action)
+        workout_type: Type of workout (can be empty for 'clear' action)
         details: Additional details
         user_id: User identifier for persistence
     
@@ -118,9 +120,13 @@ def update_calendar(action: str, date: str, workout_type: str, details: str = ""
     manager = CalendarManager(user_id)
     
     if action == "add":
+        if not date or not workout_type:
+            return "Error: 'date' and 'workout_type' are required for 'add' action."
         manager.add_event(date, workout_type, details)
         return f"Successfully added {workout_type} on {date}."
     elif action == "remove":
+        if not date or not workout_type:
+            return "Error: 'date' and 'workout_type' are required for 'remove' action."
         # For remove, we need an event_id, but we can use date and workout_type to find it
         events = manager.get_events()
         removed = False
@@ -133,6 +139,8 @@ def update_calendar(action: str, date: str, workout_type: str, details: str = ""
         else:
             return f"No event found matching {workout_type} on {date}."
     elif action == "edit":
+        if not date or not workout_type:
+            return "Error: 'date' and 'workout_type' are required for 'edit' action."
         # For edit, we need to specify which event to edit
         # This is a simplified version - in practice, we'd need more parameters
         return "Edit functionality requires event ID. Use the CalendarManager directly for more control."
