@@ -346,30 +346,6 @@ if __name__ == "__main__":
     user_id = st.session_state.get("garmin_email", "default")
     calendar_manager = CalendarManager(user_id)
     calendar_events = calendar_manager.get_events()
-    
-    calendar_options = {
-    "editable": True,
-    "selectable": True,
-    "headerToolbar": {
-        "left": "today prev,next",
-        "center": "title",
-        "right": "dayGridMonth,timeGridWeek",
-    },
-    "initialView": "dayGridMonth",
-    }
-    
-    # This displays the calendar and returns any user edits (drags/clicks)
-    state = calendar(events=calendar_events, options=calendar_options)
-    
-    # Handle calendar interactions
-    if state and "eventClick" in state:
-        clicked_event = state["eventClick"]["event"]
-        st.write(f"Event clicked: {clicked_event}")
-        
-    if state and "dateClick" in state:
-        clicked_date = state["dateClick"]["dateStr"]
-        st.write(f"Date clicked: {clicked_date}")
-        # You could add a form here to add an event on the clicked date
 
     with st.sidebar:
         st.header("📊 Training Summary")
