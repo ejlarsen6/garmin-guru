@@ -423,6 +423,35 @@ if __name__ == "__main__":
     user_id = st.session_state.get("garmin_email", "default")
     calendar_manager = CalendarManager(user_id)
     calendar_events = calendar_manager.get_events()
+    
+    # Display upcoming events with checkboxes
+    with st.sidebar:
+        st.header("📅 Upcoming Workouts")
+        if calendar_events:
+            # Sort events by date
+            sorted_events = sorted(calendar_events, key=lambda x: x.get('start', ''))
+            
+            for event in sorted_events[:5]:  # Show next 5 events
+                col1, col2 = st.columns([1, 4])
+                with col1:
+                    completed = event.get('completed', False)
+                    # Create a button to toggle completion
+                    if st.button("✅" if completed else "⬜", 
+                                key=f"home_completed_{event.get('id')}",
+                                help="Mark as completed"):
+                        calendar_manager.toggle_completion(event.get('id'))
+                        st.rerun()
+                with col2:
+                    title = event.get('title')
+                    start_date = event.get('start')
+                    if completed:
+                        st.markdown(f"~~{title}~~")
+                        st.caption(f"✓ {start_date}")
+                    else:
+                        st.markdown(f"**{title}**")
+                        st.caption(start_date)
+        else:
+            st.info("No upcoming workouts scheduled.")
 
     with st.sidebar:
         st.header("📊 Training Summary")
