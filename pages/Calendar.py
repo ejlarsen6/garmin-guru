@@ -3,6 +3,7 @@ from streamlit_calendar import calendar
 from calendar_manager import CalendarManager
 from data_utils import update_calendar
 from style_utils import apply_custom_style
+from datetime import datetime
 
 apply_custom_style()
 
@@ -91,7 +92,7 @@ if calendar_state and "eventClick" in calendar_state:
             st.rerun()
 
 if calendar_state and "dateClick" in calendar_state:
-    clicked_date = calendar_state["dateClick"]["dateStr"]
+    clicked_date = datetime.fromisoformat(calendar_state["dateClick"]["date"]).date()
     st.info(f"Date selected: {clicked_date}")
     
     # Quick add form for the clicked date
