@@ -590,7 +590,7 @@ if __name__ == "__main__":
                         ax.set_title('HR Zone Distribution', fontsize=10, pad=10)
                         
                         # Display the chart in Streamlit
-                        st.pyplot(fig, use_container_width=True)
+                        st.pyplot(fig, width=500)
                         
                         # Add a legend
                         st.caption("""
