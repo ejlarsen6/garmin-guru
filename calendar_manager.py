@@ -46,7 +46,8 @@ class CalendarManager:
             "start": date,
             "description": details,
             "backgroundColor": "#FF4B4B" if "Hard" in details else "#3D9DF3",
-            "id": f"event_{len(self.events)}_{datetime.now().timestamp()}"
+            "id": f"event_{len(self.events)}_{datetime.now().timestamp()}",
+            "completed": False
         }
         self.events.append(new_event)
         self._save_events()
@@ -68,6 +69,15 @@ class CalendarManager:
                 for key, value in kwargs.items():
                     if value is not None:
                         event[key] = value
+                self._save_events()
+                return event
+        return None
+    
+    def toggle_completion(self, event_id: str) -> Optional[Dict]:
+        """Toggle the completion status of an event."""
+        for event in self.events:
+            if event.get('id') == event_id:
+                event['completed'] = not event.get('completed', False)
                 self._save_events()
                 return event
         return None

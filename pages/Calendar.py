@@ -68,8 +68,20 @@ calendar_options = {
     "height": 700,
 }
 
-# Get current events
+# Get current events and update their titles to show completion status
 events = calendar_manager.get_events()
+for event in events:
+    if event.get('completed', False):
+        # Add a checkmark to the title
+        event['title'] = f"✓ {event.get('title')}"
+        # Optionally change the background color to indicate completion
+        event['backgroundColor'] = '#10B981'  # Green color for completed events
+    else:
+        # Ensure the background color is appropriate
+        if 'Hard' in event.get('description', ''):
+            event['backgroundColor'] = '#FF4B4B'
+        else:
+            event['backgroundColor'] = '#3D9DF3'
 
 # Display the calendar
 calendar_state = calendar(
@@ -117,17 +129,37 @@ if calendar_state and "dateClick" in calendar_state:
 
 # Display events list
 st.header("Upcoming Events")
-if events:
+if raw_events:
     # Sort events by date
-    sorted_events = sorted(events, key=lambda x: x.get('start', ''))
+    sorted_events = sorted(raw_events, key=lambda x: x.get('start', ''))
     
     for event in sorted_events[:10]:  # Show next 10 events
-        col1, col2 = st.columns([3, 1])
-        with col1:
-            st.markdown(f"**{event.get('title')}** - {event.get('start')}")
+        # Create columns for checkbox, event details, and remove button
+        col_check, col_details, col_remove = st.columns([1, 5, 2])
+        
+        with col_check:
+            # Display checkbox for completion
+            completed = event.get('completed', False)
+            # Create a unique key for the checkbox
+            checkbox_key = f"completed_{event.get('id')}"
+            # Use a button to toggle completion status
+            if st.button("✅" if completed else "⬜", key=checkbox_key):
+                calendar_manager.toggle_completion(event.get('id'))
+                st.rerun()
+        
+        with col_details:
+            # Strike through if completed
+            title = event.get('title')
+            start_date = event.get('start')
+            if completed:
+                st.markdown(f"~~**{title}** - {start_date}~~")
+                st.caption("✓ Completed")
+            else:
+                st.markdown(f"**{title}** - {start_date}")
             if event.get('description'):
                 st.caption(event.get('description'))
-        with col2:
+        
+        with col_remove:
             if st.button("Remove", key=f"remove_{event.get('id')}"):
                 if calendar_manager.remove_event(event.get('id')):
                     st.success("Removed")
