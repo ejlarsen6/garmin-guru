@@ -69,23 +69,26 @@ calendar_options = {
 }
 
 # Get current events and update their titles to show completion status
-events = calendar_manager.get_events()
-for event in events:
-    if event.get('completed', False):
+raw_events = calendar_manager.get_events()
+display_events = []
+for event in raw_events:
+    display_event = event.copy()
+    if display_event.get('completed', False):
         # Add a checkmark to the title
-        event['title'] = f"✓ {event.get('title')}"
-        # Optionally change the background color to indicate completion
-        event['backgroundColor'] = '#10B981'  # Green color for completed events
+        display_event['title'] = f"✓ {display_event.get('title')}"
+        # Change the background color to indicate completion
+        display_event['backgroundColor'] = '#10B981'  # Green color for completed events
     else:
         # Ensure the background color is appropriate
-        if 'Hard' in event.get('description', ''):
-            event['backgroundColor'] = '#FF4B4B'
+        if 'Hard' in display_event.get('description', ''):
+            display_event['backgroundColor'] = '#FF4B4B'
         else:
-            event['backgroundColor'] = '#3D9DF3'
+            display_event['backgroundColor'] = '#3D9DF3'
+    display_events.append(display_event)
 
 # Display the calendar
 calendar_state = calendar(
-    events=events,
+    events=display_events,
     options=calendar_options,
     key="training_calendar"
 )
