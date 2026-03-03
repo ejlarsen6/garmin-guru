@@ -565,8 +565,44 @@ if __name__ == "__main__":
             
                 # Optional: Add a small HR Zone mini-chart inside the card
                 with st.expander("View Zone Breakdown"):
-                    zones = {"Z1": row['Z1_Min'], "Z2": row['Z2_Min'], "Z3": row['Z3_Min'], "Z4": row['Z4_Min'], "Z5": row['Z5_Min']}
-                    st.bar_chart(pd.Series(zones), horizontal=True, height=150)
+                    # Prepare zone data
+                    zone_labels = ['Z1', 'Z2', 'Z3', 'Z4', 'Z5']
+                    zone_values = [row['Z1_Min'], row['Z2_Min'], row['Z3_Min'], row['Z4_Min'], row['Z5_Min']]
+                    
+                    # Only show pie chart if there's any zone data
+                    if sum(zone_values) > 0:
+                        # Define colors for each zone
+                        zone_colors = ['#4CAF50', '#8BC34A', '#FFC107', '#FF9800', '#F44336']
+                        
+                        # Create pie chart
+                        fig, ax = plt.subplots(figsize=(4, 4))
+                        wedges, texts, autotexts = ax.pie(
+                            zone_values,
+                            labels=zone_labels,
+                            colors=zone_colors,
+                            autopct='%1.1f%%',
+                            startangle=90,
+                            textprops={'fontsize': 8}
+                        )
+                        
+                        # Equal aspect ratio ensures that pie is drawn as a circle
+                        ax.axis('equal')
+                        ax.set_title('HR Zone Distribution', fontsize=10, pad=10)
+                        
+                        # Display the chart in Streamlit
+                        st.pyplot(fig, use_container_width=True)
+                        
+                        # Add a legend
+                        st.caption("""
+                        Zone colors: 
+                        <span style='color:#4CAF50'>Z1 (Very Light)</span> | 
+                        <span style='color:#8BC34A'>Z2 (Light)</span> | 
+                        <span style='color:#FFC107'>Z3 (Moderate)</span> | 
+                        <span style='color:#FF9800'>Z4 (Hard)</span> | 
+                        <span style='color:#F44336'>Z5 (Maximum)</span>
+                        """, unsafe_allow_html=True)
+                    else:
+                        st.info("No HR zone data available for this activity.")
 
     
     with st.expander("📊 View Recent Activity Data"):
