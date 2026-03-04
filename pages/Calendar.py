@@ -54,7 +54,6 @@ with st.sidebar:
             st.rerun()
 
 # Display calendar
-st.header("Your Training Schedule")
 
 calendar_options = {
     "editable": True,

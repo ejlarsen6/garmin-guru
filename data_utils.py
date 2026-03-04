@@ -295,7 +295,7 @@ def plot_vo2max_over_time(df, color="#10B981"):
     )
     
     # Display in Streamlit
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width='content')
 
 def plot_weekly_training_time(df, color="#6366F1"):
     import plotly.graph_objects as go
@@ -360,7 +360,7 @@ def plot_weekly_training_time(df, color="#6366F1"):
     )
     
     # Display in Streamlit
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width='content')
 
 def get_pbs(df):
   df["Date"] = pd.to_datetime(df["Date"])
@@ -687,7 +687,7 @@ def plot_race_predictions_trend(df_history):
         height=500
     )
     
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width='content')
 
 def get_training_stress(df):
     """Calculates the ratio of last 7 days volume vs last 30 days."""
