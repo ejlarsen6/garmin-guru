@@ -20,6 +20,9 @@ if "logged_in" not in st.session_state or not st.session_state.logged_in:
 user_email = st.session_state.get("garmin_email", "default")
 calendar_manager = CalendarManager(user_email)
 
+# Get events early so they're available in the sidebar
+raw_events = calendar_manager.get_events()
+
 # Sidebar for adding events
 with st.sidebar:
     st.header("Add New Event")
@@ -143,8 +146,7 @@ calendar_options = {
     },
 }
 
-# Get current events and update their titles to show completion status
-raw_events = calendar_manager.get_events()
+# Create display events from raw_events
 display_events = []
 for event in raw_events:
     display_event = event.copy()
