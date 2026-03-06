@@ -47,10 +47,73 @@ with st.spinner(f"Analyzing last {n_days} days..."):
     df_analytics = get_cached_workout_data(n_days, email, password)
 
 if df_analytics is not None and not df_analytics.empty:
-    col1, col2 = st.columns(2)
-
+    # Remove columns to make graphs full width
+    # Personal Best Progression
     st.subheader("🏆 Personal Best Progression")
-    plot_pr_only(get_personal_records(email, password))
+    # Fetch and display personal records directly
+    try:
+        pr_data = get_personal_records(email, password)
+        if pr_data:
+            # Create a better visualization
+            import plotly.graph_objects as go
+            import plotly.express as px
+            
+            # Convert to DataFrame
+            df_pr = pd.DataFrame(pr_data)
+            
+            if not df_pr.empty:
+                # Format time for display
+                def format_time(seconds):
+                    if pd.isna(seconds):
+                        return "N/A"
+                    mins = int(seconds // 60)
+                    secs = int(seconds % 60)
+                    return f"{mins}:{secs:02d}"
+                
+                df_pr['time_formatted'] = df_pr['time_seconds'].apply(format_time)
+                df_pr['time_minutes'] = df_pr['time_seconds'] / 60
+                
+                # Create bar chart with Plotly for better interactivity
+                fig = go.Figure()
+                
+                # Add bars
+                fig.add_trace(go.Bar(
+                    x=df_pr['distance'],
+                    y=df_pr['time_minutes'],
+                    text=df_pr['time_formatted'],
+                    textposition='auto',
+                    marker_color=px.colors.sequential.Viridis,
+                    hovertemplate='<b>%{x}</b><br>Time: %{text}<br>Date: %{customdata}<extra></extra>',
+                    customdata=df_pr['date'].apply(lambda x: x.strftime('%Y-%m-%d') if pd.notnull(x) else 'N/A')
+                ))
+                
+                fig.update_layout(
+                    title='Personal Records by Distance',
+                    xaxis_title='Distance',
+                    yaxis_title='Time (minutes)',
+                    template='plotly_dark',
+                    height=500,
+                    showlegend=False
+                )
+                
+                st.plotly_chart(fig, use_container_width=True)
+                
+                # Display table
+                with st.expander("View Personal Record Details"):
+                    display_df = df_pr[['distance', 'time_formatted', 'date']].copy()
+                    display_df['date'] = display_df['date'].apply(lambda x: x.strftime('%Y-%m-%d') if pd.notnull(x) else 'N/A')
+                    display_df.columns = ['Distance', 'Time', 'Date']
+                    st.dataframe(display_df, use_container_width=True)
+            else:
+                st.info("No personal records found.")
+        else:
+            st.info("Could not load personal records. Try refreshing.")
+    except Exception as e:
+        st.error(f"Error loading personal records: {e}")
+        # Fall back to the original plot
+        plot_pr_only(df_analytics, email, password)
+    
+    st.divider()
     
     st.subheader("Aerobic Efficiency")
     plot_vo2max_over_time(df_analytics)
