@@ -47,11 +47,17 @@ with st.sidebar:
                 st.rerun()
     
     st.header("Manage Events")
-    if st.button("Clear All Events", type="secondary"):
-        if st.checkbox("I'm sure I want to clear all events"):
+    # Use a form to prevent rerun issues
+    with st.form("clear_events_form"):
+        st.write("Clear all events from the calendar?")
+        confirm = st.checkbox("I'm sure I want to clear all events")
+        submitted = st.form_submit_button("Clear All Events", type="secondary")
+        if submitted and confirm:
             calendar_manager.clear_events()
             st.success("All events cleared.")
             st.rerun()
+        elif submitted and not confirm:
+            st.warning("Please check the confirmation box to clear all events.")
 
 # Display calendar
 
