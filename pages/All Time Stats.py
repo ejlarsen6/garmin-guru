@@ -7,6 +7,7 @@ from data_utils import (
     summarize_n_days, 
     plot_weekly_training_time, 
     plot_vo2max_over_time, 
+    get_personal_records, 
     plot_pr_only, 
     get_training_stress,
     get_race_predictions_history,
@@ -49,7 +50,7 @@ if df_analytics is not None and not df_analytics.empty:
     col1, col2 = st.columns(2)
 
     st.subheader("🏆 Personal Best Progression")
-    plot_pr_only(df_analytics)
+    plot_pr_only(get_personal_records(email, password))
     
     st.subheader("Aerobic Efficiency")
     plot_vo2max_over_time(df_analytics)
