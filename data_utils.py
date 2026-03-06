@@ -400,7 +400,81 @@ def format_seconds(seconds):
     ts = str(td)
     return ts if seconds >= 3600 else ts[2:]
 
-def plot_pr_only(df):
+def plot_pr_only(df, email=None, password=None):
+    """Plot personal records, using Garmin API data if available."""
+    import streamlit as st
+    
+    # Try to get actual personal records from Garmin API
+    if email and password:
+        pr_data = get_personal_records(email, password)
+        if pr_data:
+            # Create a better visualization using actual PR data
+            df_pr = pd.DataFrame(pr_data)
+            
+            if df_pr.empty:
+                st.info("No personal records found in Garmin data.")
+                return
+            
+            # Convert time to minutes for better readability
+            df_pr['time_minutes'] = df_pr['time_seconds'] / 60
+            
+            # Format time strings
+            def format_time(seconds):
+                if pd.isna(seconds):
+                    return "N/A"
+                mins = int(seconds // 60)
+                secs = int(seconds % 60)
+                return f"{mins}:{secs:02d}"
+            
+            df_pr['time_formatted'] = df_pr['time_seconds'].apply(format_time)
+            
+            # Create a figure with two subplots
+            fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6))
+            
+            # Bar chart on the left
+            colors = plt.cm.viridis(range(len(df_pr)))
+            bars = ax1.bar(df_pr['distance'], df_pr['time_minutes'], color=colors)
+            
+            # Add value labels on top of bars
+            for bar, time_str in zip(bars, df_pr['time_formatted']):
+                height = bar.get_height()
+                ax1.text(bar.get_x() + bar.get_width()/2., height + 0.1,
+                        time_str, ha='center', va='bottom', fontsize=10)
+            
+            ax1.set_ylabel('Time (minutes)')
+            ax1.set_title('Personal Records by Distance', fontsize=14, fontweight='bold')
+            ax1.grid(axis='y', alpha=0.3)
+            ax1.tick_params(axis='x', rotation=45)
+            
+            # Timeline on the right (if dates are available)
+            valid_dates = df_pr.dropna(subset=['date'])
+            if not valid_dates.empty:
+                # Sort by date
+                valid_dates = valid_dates.sort_values('date')
+                ax2.scatter(valid_dates['date'], valid_dates['distance'], 
+                           s=100, c='blue', alpha=0.6)
+                ax2.set_xlabel('Date')
+                ax2.set_title('Record Achievement Timeline', fontsize=14, fontweight='bold')
+                ax2.grid(True, alpha=0.3)
+                ax2.tick_params(axis='x', rotation=45)
+            else:
+                ax2.text(0.5, 0.5, 'No date information available', 
+                        ha='center', va='center', transform=ax2.transAxes)
+                ax2.set_title('Record Achievement Timeline', fontsize=14, fontweight='bold')
+            
+            plt.tight_layout()
+            st.pyplot(fig)
+            
+            # Display a table with details
+            with st.expander("View Personal Record Details"):
+                display_df = df_pr[['distance', 'time_formatted', 'date']].copy()
+                display_df['date'] = display_df['date'].apply(lambda x: x.strftime('%Y-%m-%d') if pd.notnull(x) else 'N/A')
+                display_df.columns = ['Distance', 'Time', 'Date']
+                st.dataframe(display_df, use_container_width=True)
+            
+            return
+    
+    # Fall back to the original method if no API data
     df = df.copy()
     df["Date"] = pd.to_datetime(df["Date"])
     
@@ -446,7 +520,7 @@ def plot_pr_only(df):
         ax.scatter(
             grp["Date"],
             grp["T"],
-            s=180, # Made slightly bigger for the stars
+            s=180,
             color=color,
             marker="*",
             edgecolor="black",
@@ -454,15 +528,15 @@ def plot_pr_only(df):
             label=f"{dist_label} PR ★"
         )
 
-    ax.invert_yaxis() # Faster times (lower seconds) are at the top
-    ax.set_title("Personal Bests Progression (PRs Only)", fontsize=16)
+    ax.invert_yaxis()
+    ax.set_title("Personal Bests Progression (Estimated from Activities)", fontsize=16)
     ax.set_xlabel("Date")
     ax.set_ylabel("Estimated Time (seconds)")
     ax.grid(True, alpha=0.3)
     ax.legend()
     
     plt.tight_layout()
-    st.pyplot(fig, width='stretch')
+    st.pyplot(fig)
 
 def get_user_profile_data(email, password):
     try:
@@ -688,6 +762,57 @@ def plot_race_predictions_trend(df_history):
     )
     
     st.plotly_chart(fig, width='content')
+
+def get_personal_records(email, password):
+    """Fetch personal records from Garmin API."""
+    try:
+        client = get_garmin_client(email, password)
+        pr_data = client.get_personal_record()
+        
+        # Map typeId to distance names
+        distance_map = {
+            1: "1k",
+            2: "Mile",
+            3: "5k",
+            4: "10k",
+            5: "Half Marathon",
+            6: "Marathon"
+        }
+        
+        records = []
+        for record in pr_data:
+            type_id = record.get('typeId')
+            if type_id in distance_map:
+                # Parse the date
+                date_str = record.get('activityStartDateTimeLocalFormatted', '')
+                if date_str:
+                    # Handle the format '2025-08-23T06:11:25.0'
+                    try:
+                        # Extract date part before 'T'
+                        date_part = date_str.split('T')[0]
+                        date_obj = pd.to_datetime(date_part)
+                    except:
+                        date_obj = None
+                else:
+                    date_obj = None
+                
+                records.append({
+                    'distance': distance_map[type_id],
+                    'time_seconds': record.get('value'),
+                    'date': date_obj,
+                    'date_str': date_str,
+                    'type_id': type_id
+                })
+        
+        # Sort by distance in a logical order
+        distance_order = ["1k", "Mile", "5k", "10k", "Half Marathon", "Marathon"]
+        records_sorted = sorted(records, key=lambda x: distance_order.index(x['distance']) if x['distance'] in distance_order else 999)
+        
+        return records_sorted
+    except Exception as e:
+        import streamlit as st
+        st.error(f"Error fetching personal records: {e}")
+        return None
 
 def get_training_stress(df):
     """Calculates the ratio of last 7 days volume vs last 30 days."""
