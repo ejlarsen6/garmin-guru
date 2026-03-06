@@ -46,6 +46,69 @@ with st.sidebar:
                 st.success(result)
                 st.rerun()
     
+    # Weekly Mileage Counter
+    st.header("📊 Weekly Mileage")
+    
+    # Get current week's events
+    from datetime import datetime, timedelta
+    today = datetime.now().date()
+    # Find Monday of this week (first day is Monday)
+    start_of_week = today - timedelta(days=today.weekday())  # Monday is 0
+    end_of_week = start_of_week + timedelta(days=6)  # Sunday
+    
+    # Filter events for this week
+    weekly_events = []
+    weekly_mileage = 0.0
+    
+    for event in raw_events:
+        event_date_str = event.get('start')
+        if event_date_str:
+            try:
+                event_date = datetime.strptime(event_date_str, "%Y-%m-%d").date()
+                if start_of_week <= event_date <= end_of_week:
+                    weekly_events.append(event)
+                    # Try to extract mileage from description
+                    description = event.get('description', '')
+                    if description:
+                        # Look for patterns like "5 miles", "10 mi", "3.5 miles"
+                        import re
+                        # Find numbers followed by "mi" or "miles"
+                        matches = re.findall(r'(\d+\.?\d*)\s*(?:mi|miles|mile)', description.lower())
+                        if matches:
+                            weekly_mileage += sum(float(match) for match in matches)
+            except:
+                pass
+    
+    st.metric("This Week's Mileage", f"{weekly_mileage:.1f} mi")
+    st.caption(f"Week of {start_of_week.strftime('%b %d')} - {end_of_week.strftime('%b %d')}")
+    
+    # Show weekly events summary
+    if weekly_events:
+        with st.expander("View This Week's Workouts"):
+            for event in weekly_events:
+                col1, col2 = st.columns([3, 1])
+                with col1:
+                    title = event.get('title', '')
+                    date_str = event.get('start', '')
+                    desc = event.get('description', '')
+                    st.write(f"**{title}** ({date_str})")
+                    if desc:
+                        st.caption(desc)
+                with col2:
+                    # Extract mileage for this specific event
+                    event_mileage = 0.0
+                    if desc:
+                        import re
+                        matches = re.findall(r'(\d+\.?\d*)\s*(?:mi|miles|mile)', desc.lower())
+                        if matches:
+                            event_mileage = sum(float(match) for match in matches)
+                    if event_mileage > 0:
+                        st.metric("", f"{event_mileage:.1f} mi")
+    else:
+        st.info("No workouts scheduled for this week.")
+    
+    st.divider()
+    
     st.header("Manage Events")
     # Use a form to prevent rerun issues
     with st.form("clear_events_form"):
@@ -71,6 +134,13 @@ calendar_options = {
     },
     "initialView": "dayGridMonth",
     "height": 700,
+    "firstDay": 1,  # Monday as first day of week
+    "eventDisplay": "block",  # Show more details in month view
+    "eventTimeFormat": {
+        "hour": "2-digit",
+        "minute": "2-digit",
+        "meridiem": "short"
+    },
 }
 
 # Get current events and update their titles to show completion status
@@ -78,23 +148,63 @@ raw_events = calendar_manager.get_events()
 display_events = []
 for event in raw_events:
     display_event = event.copy()
+    
+    # Prepare title with completion status
+    title = display_event.get('title', '')
     if display_event.get('completed', False):
-        # Add a checkmark to the title
-        display_event['title'] = f"✓ {display_event.get('title')}"
-        # Change the background color to indicate completion
+        title = f"✓ {title}"
+    
+    # Add description to title for better visibility in month view
+    description = display_event.get('description', '')
+    if description:
+        # Truncate description if too long
+        if len(description) > 30:
+            short_desc = description[:27] + "..."
+        else:
+            short_desc = description
+        # Add to title for month view display
+        display_event['title'] = f"{title}: {short_desc}"
+    else:
+        display_event['title'] = title
+    
+    # Set background color
+    if display_event.get('completed', False):
         display_event['backgroundColor'] = '#10B981'  # Green color for completed events
     else:
-        # Ensure the background color is appropriate
-        if 'Hard' in display_event.get('description', ''):
+        if 'Hard' in description:
             display_event['backgroundColor'] = '#FF4B4B'
         else:
             display_event['backgroundColor'] = '#3D9DF3'
+    
+    # Add extendedProps for more details in tooltips
+    display_event['extendedProps'] = {
+        'description': description,
+        'original_title': event.get('title', ''),
+        'completed': display_event.get('completed', False)
+    }
+    
     display_events.append(display_event)
 
 # Display the calendar
 calendar_state = calendar(
     events=display_events,
     options=calendar_options,
+    custom_css="""
+    .fc-event {
+        border-radius: 4px;
+        border: none;
+        font-size: 0.85em;
+        padding: 2px;
+    }
+    .fc-event-title {
+        font-weight: 500;
+        white-space: normal !important;
+        line-height: 1.2;
+    }
+    .fc-daygrid-event {
+        min-height: 2em;
+    }
+    """,
     key="training_calendar"
 )
 
@@ -159,13 +269,24 @@ if raw_events:
             # Strike through if completed
             title = event.get('title')
             start_date = event.get('start')
+            description = event.get('description', '')
+            
+            # Extract mileage from description
+            mileage_display = ""
+            if description:
+                import re
+                matches = re.findall(r'(\d+\.?\d*)\s*(?:mi|miles|mile)', description.lower())
+                if matches:
+                    total_miles = sum(float(match) for match in matches)
+                    mileage_display = f" ({total_miles:.1f} mi)"
+            
             if completed:
-                st.markdown(f"~~**{title}** - {start_date}~~")
+                st.markdown(f"~~**{title}** - {start_date}{mileage_display}~~")
                 st.caption("✓ Completed")
             else:
-                st.markdown(f"**{title}** - {start_date}")
-            if event.get('description'):
-                st.caption(event.get('description'))
+                st.markdown(f"**{title}** - {start_date}{mileage_display}")
+            if description:
+                st.caption(description)
         
         with col_remove:
             if st.button("Remove", key=f"remove_{event.get('id')}"):

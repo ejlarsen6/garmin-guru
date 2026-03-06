@@ -427,6 +427,33 @@ if __name__ == "__main__":
     # Display upcoming events with checkboxes
     with st.sidebar:
         st.header("📅 Upcoming Workouts")
+        
+        # Calculate weekly mileage
+        from datetime import datetime, timedelta
+        today = datetime.now().date()
+        start_of_week = today - timedelta(days=today.weekday())  # Monday is 0
+        end_of_week = start_of_week + timedelta(days=6)
+        
+        weekly_mileage = 0.0
+        for event in calendar_events:
+            event_date_str = event.get('start')
+            if event_date_str:
+                try:
+                    event_date = datetime.strptime(event_date_str, "%Y-%m-%d").date()
+                    if start_of_week <= event_date <= end_of_week:
+                        description = event.get('description', '')
+                        if description:
+                            import re
+                            matches = re.findall(r'(\d+\.?\d*)\s*(?:mi|miles|mile)', description.lower())
+                            if matches:
+                                weekly_mileage += sum(float(match) for match in matches)
+                except:
+                    pass
+        
+        # Display weekly mileage
+        st.metric("This Week's Planned Mileage", f"{weekly_mileage:.1f} mi")
+        st.caption(f"Week of {start_of_week.strftime('%b %d')} - {end_of_week.strftime('%b %d')}")
+        
         if calendar_events:
             # Sort events by date
             sorted_events = sorted(calendar_events, key=lambda x: x.get('start', ''))
@@ -444,11 +471,22 @@ if __name__ == "__main__":
                 with col2:
                     title = event.get('title')
                     start_date = event.get('start')
+                    description = event.get('description', '')
+                    
+                    # Extract mileage for display
+                    mileage_display = ""
+                    if description:
+                        import re
+                        matches = re.findall(r'(\d+\.?\d*)\s*(?:mi|miles|mile)', description.lower())
+                        if matches:
+                            total_miles = sum(float(match) for match in matches)
+                            mileage_display = f" ({total_miles:.1f} mi)"
+                    
                     if completed:
-                        st.markdown(f"~~{title}~~")
+                        st.markdown(f"~~{title}{mileage_display}~~")
                         st.caption(f"✓ {start_date}")
                     else:
-                        st.markdown(f"**{title}**")
+                        st.markdown(f"**{title}{mileage_display}**")
                         st.caption(start_date)
         else:
             st.info("No upcoming workouts scheduled.")
