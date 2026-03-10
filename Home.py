@@ -406,7 +406,17 @@ if __name__ == "__main__":
         cutoff_date = datetime.now() - timedelta(days=current_range)
         
         master_df = st.session_state.df_master
-        st.session_state.df_data = master_df[master_df['Date'] >= cutoff_date].copy()
+        # Check if master_df is not None before filtering
+        if master_df is not None:
+            st.session_state.df_data = master_df[master_df['Date'] >= cutoff_date].copy()
+        else:
+            # Create an empty DataFrame with the expected columns
+            st.session_state.df_data = pd.DataFrame(columns=[
+                "Activity Name", "Date", "Distance (mi)", "Duration (min)", 
+                "Pace_Decimal", "Avg HR", "VO2 Max", "Elev Gain (ft)", 
+                "Latitude", "Longitude", "Z1_Min", "Z2_Min", "Z3_Min", 
+                "Z4_Min", "Z5_Min", "Is Manual", "Activity Type"
+            ])
 
         # Initialize the agent with the FILTERED data
         st.session_state.coach_agent = get_agent()
@@ -416,8 +426,11 @@ if __name__ == "__main__":
         stats = summarize_n_days(df)
         coach_agent = st.session_state.coach_agent
 
-    
-        all_time_stats = summarize_n_days(st.session_state.df_master)
+        # Handle all_time_stats carefully
+        if st.session_state.df_master is not None:
+            all_time_stats = summarize_n_days(st.session_state.df_master)
+        else:
+            all_time_stats = {}
 
     # Load calendar events from JSON using the user's email as ID
     user_id = st.session_state.get("garmin_email", "default")
@@ -524,65 +537,68 @@ if __name__ == "__main__":
                     del st.session_state[key]
             st.rerun()
 
-        if df is not None and not df.empty:
-            stats = summarize_n_days(df) 
-            
-            st.markdown(f"### Last {current_range} Days")
-            st.metric("Total Distance", f"{stats.get('Total Distance Run (mi)', 0):.1f} mi")
-            st.metric("Elevation Gain", f"{stats.get('Total Elevation Gained (ft)', 0):,.0f} ft")
-            st.metric("Current VO2 Max", f"{stats.get('Current VO2 Max', 'N/A')}")
-            
-            # Race Predictions Section
-            st.markdown("### 🏁 Race Predictions")
-            try:
-                from data_utils import get_race_predictions, format_prediction_time
-                enddate=str(date.today())
-                startdate = str(date.today() - timedelta(days=365))
-                predictions = get_race_predictions(email, pwd, startdate, enddate)
-                if predictions and isinstance(predictions, dict):
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        st.metric("5K", format_prediction_time(predictions.get('time5K')))
-                        st.metric("10K", format_prediction_time(predictions.get('time10K')))
-                    with col2:
-                        st.metric("Half Marathon", format_prediction_time(predictions.get('timeHalfMarathon')))
-                        st.metric("Marathon", format_prediction_time(predictions.get('timeMarathon')))
-                else:
-                    st.info("No race predictions available.")
-            except Exception as e:
-                st.warning(f"Could not load race predictions: {e}")
-            
-            # st.divider()
-
-    if df is not None and not df.empty:
-        # Get the Stress Score
-        stress_score = get_training_stress(master_df)
-        st.subheader("Training Readiness")
+        # Always show the metrics, even if df is empty
+        stats = summarize_n_days(df) 
         
-        # Define status colors/labels
-        if stress_score < 0.8:
-            status_label, status_color, status_icon = "Recovery / Detraining", "normal", "🧊"
-        elif 0.8 <= stress_score <= 1.3:
-            status_label, status_color, status_icon = "Optimal Load", "normal", "✅"
-        else:
-            status_label, status_color, status_icon = "High Load / Overreaching", "inverse", "⚠️"
-
-        # Display the readiness metric at the top of the dashboard
-        r_col1, r_col2 = st.columns([1, 3])
-        with r_col1:
-            st.metric("Stress Ratio", f"{stress_score}", delta=status_label, delta_color=status_color)
-        with r_col2:
-            st.markdown(f"**Status: {status_icon}**")
-            if status_icon == "⚠️":
-                st.warning("Your volume is spiking! Consider an easy day to prevent injury.")
-            elif status_icon == "✅":
-                st.success("You're in the training 'Sweet Spot.' Keep it up!")
+        st.markdown(f"### Last {current_range} Days")
+        st.metric("Total Distance", f"{stats.get('Total Distance Run (mi)', 0):.1f} mi")
+        st.metric("Elevation Gain", f"{stats.get('Total Elevation Gained (ft)', 0):,.0f} ft")
+        st.metric("Current VO2 Max", f"{stats.get('Current VO2 Max', 'N/A')}")
+        
+        # Race Predictions Section
+        st.markdown("### 🏁 Race Predictions")
+        try:
+            from data_utils import get_race_predictions, format_prediction_time
+            enddate=str(date.today())
+            startdate = str(date.today() - timedelta(days=365))
+            predictions = get_race_predictions(email, pwd, startdate, enddate)
+            if predictions and isinstance(predictions, dict):
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.metric("5K", format_prediction_time(predictions.get('time5K')))
+                    st.metric("10K", format_prediction_time(predictions.get('time10K')))
+                with col2:
+                    st.metric("Half Marathon", format_prediction_time(predictions.get('timeHalfMarathon')))
+                    st.metric("Marathon", format_prediction_time(predictions.get('timeMarathon')))
             else:
-                st.info("You are currently in a recovery phase or decreasing volume.")
+                st.info("No race predictions available.")
+        except Exception as e:
+            st.warning(f"Could not load race predictions: {e}")
+        
+        # st.divider()
 
-    if df is not None and not df.empty:
-        st.header("🏃 Recent Activities")
+    # Always show Training Readiness, but handle when master_df might be None
+    if master_df is not None:
+        stress_score = get_training_stress(master_df)
+    else:
+        stress_score = 0.0
     
+    st.subheader("Training Readiness")
+    
+    # Define status colors/labels
+    if stress_score < 0.8:
+        status_label, status_color, status_icon = "Recovery / Detraining", "normal", "🧊"
+    elif 0.8 <= stress_score <= 1.3:
+        status_label, status_color, status_icon = "Optimal Load", "normal", "✅"
+    else:
+        status_label, status_color, status_icon = "High Load / Overreaching", "inverse", "⚠️"
+
+    # Display the readiness metric at the top of the dashboard
+    r_col1, r_col2 = st.columns([1, 3])
+    with r_col1:
+        st.metric("Stress Ratio", f"{stress_score}", delta=status_label, delta_color=status_color)
+    with r_col2:
+        st.markdown(f"**Status: {status_icon}**")
+        if status_icon == "⚠️":
+            st.warning("Your volume is spiking! Consider an easy day to prevent injury.")
+        elif status_icon == "✅":
+            st.success("You're in the training 'Sweet Spot.' Keep it up!")
+        else:
+            st.info("You are currently in a recovery phase or decreasing volume.")
+
+    st.header("🏃 Recent Activities")
+    
+    if df is not None and not df.empty:
         # Loop through the dataframe rows to create the feed
         for index, row in df.iterrows():
             # Create a unique container for each run
@@ -670,13 +686,15 @@ if __name__ == "__main__":
                         """, unsafe_allow_html=True)
                     else:
                         st.info("No HR zone data available for this activity.")
+    else:
+        st.info("No recent activities found. Try logging some runs on your Garmin device!")
 
     
     with st.expander("📊 View Recent Activity Data"):
-        if df is not None:
+        if df is not None and not df.empty:
             st.dataframe(df, width='stretch')
         else:
-            st.error("Could not load Garmin data. Check your credentials.")
+            st.info("No activity data available.")
 
     with st.container(height=400): # Fixed height makes it a scrollable sub-window
         # Display existing messages from history
