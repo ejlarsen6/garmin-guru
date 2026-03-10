@@ -26,3 +26,4 @@ cred.env
 *.sqlite3
 .cache/
 .aider*
+calendar_data/
